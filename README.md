@@ -33,7 +33,7 @@ pnpm crawl 500    # crawl until the pool holds 500 games
 
 ## Keys
 
-`j` / `↓` / space next · `k` / `↑` previous · `m` mute · `l` like
+`j` / `↓` / space next · `k` / `↑` previous · `←` `→` media · `m` mute · `s` share
 
 ## Notes
 
@@ -46,7 +46,7 @@ pnpm crawl 500    # crawl until the pool holds 500 games
   2.5s cap so the client never waits long. Steam traffic therefore scales with
   games actually seen, not with pool size. Interactive refreshes take priority
   over the background crawler in the shared rate limiter.
-- Likes live in `localStorage` for now.
+- Share uses the native share sheet where available and copies a `?game=APPID` link otherwise; that link opens the feed on that game.
 
 ## Deploy
 

@@ -7,9 +7,8 @@ type Props = {
   active: boolean
   nearby: boolean
   muted: boolean
-  liked: boolean
   onToggleMute: () => void
-  onToggleLike: () => void
+  onShare: () => void
 }
 
 function reviewColor(pct: number | null) {
@@ -24,7 +23,7 @@ function year(date: string | null) {
   return m ? m[0] : null
 }
 
-export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onToggleLike }: Props) {
+export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
   const [expanded, setExpanded] = useState(false)
 
@@ -37,9 +36,10 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
 
       {/* right action rail */}
       <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 sm:right-5">
-        <RailButton label={liked ? 'Unlike' : 'Like'} onClick={onToggleLike} active={liked}>
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+        <RailButton label="Share" onClick={onShare}>
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+            <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
           </svg>
         </RailButton>
         <RailButton label={muted ? 'Unmute' : 'Mute'} onClick={onToggleMute}>
@@ -115,25 +115,13 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
   )
 }
 
-function RailButton({
-  children,
-  label,
-  onClick,
-  active,
-}: {
-  children: React.ReactNode
-  label: string
-  onClick: () => void
-  active?: boolean
-}) {
+function RailButton({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur transition ${
-        active ? 'bg-rose-500/80 text-white' : 'bg-white/10 text-white hover:bg-white/20'
-      }`}
+      className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
     >
       {children}
     </button>
