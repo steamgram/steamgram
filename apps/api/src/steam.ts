@@ -70,7 +70,7 @@ export async function searchPage(start: number, count = 50, sort: string = SEARC
   return { hits: parseSearchHtml(json.results_html), total: json.total_count }
 }
 
-function decodeEntities(s: string): string {
+export function decodeEntities(s: string): string {
   return s
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

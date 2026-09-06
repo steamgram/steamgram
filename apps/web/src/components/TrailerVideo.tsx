@@ -52,11 +52,13 @@ export function TrailerVideo({ game, active, nearby, muted }: Props) {
       el.play().catch(() => {/* autoplay blocked until user gesture */})
     } else {
       el.pause()
-      el.currentTime = 0
     }
   }, [active, useHls])
 
-  if (failed || !nearby) return <ScreenshotFallback game={game} active={active} />
+  if (failed) return <ScreenshotFallback game={game} active={active} />
+  if (!nearby) {
+    return <img src={game.trailer_thumb ?? game.header_image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+  }
 
   return (
     <video

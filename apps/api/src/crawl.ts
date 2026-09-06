@@ -1,4 +1,4 @@
-import { appDetails, legacyMp4, loadTagMap, searchPage, type SearchHit } from './steam.js'
+import { appDetails, decodeEntities, legacyMp4, loadTagMap, searchPage, type SearchHit } from './steam.js'
 import { countGames, isVisited, markVisited, saveGame, type Game } from './db.js'
 
 const MIN_REVIEWS = 10 // below this the data is noise
@@ -26,8 +26,8 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
 
   const game: Game = {
     appid: d.steam_appid,
-    name: d.name,
-    short_description: d.short_description,
+    name: decodeEntities(d.name),
+    short_description: decodeEntities(d.short_description.replace(/<[^>]+>/g, "")),
     header_image: d.header_image,
     background: d.background_raw ?? null,
     trailer_mp4: movie ? legacyMp4(movie.id) : null,

@@ -1,5 +1,5 @@
 import type { Game } from '../types'
-import { TrailerVideo } from './TrailerVideo'
+import { MediaCarousel } from './MediaCarousel'
 
 type Props = {
   game: Game
@@ -25,18 +25,13 @@ function year(date: string | null) {
 
 export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onToggleLike }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
-  const hasTrailer = !!(game.trailer_mp4 || game.trailer_hls)
 
   return (
     <section className="relative h-dvh w-full snap-start snap-always overflow-hidden bg-black">
-      {hasTrailer ? (
-        <TrailerVideo game={game} active={active} nearby={nearby} muted={muted} />
-      ) : (
-        <img src={game.screenshots[0] ?? game.header_image} alt="" className={`absolute inset-0 h-full w-full object-cover ${active ? 'kenburns' : ''}`} />
-      )}
+      <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
 
       {/* gradients for legibility */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/95 via-black/65 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
 
       {/* right action rail */}
