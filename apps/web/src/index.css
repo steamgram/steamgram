@@ -39,3 +39,14 @@ html, body, #root {
 .logo-pulse {
   animation: logo-pulse 1.4s ease-in-out infinite;
 }
+
+@keyframes fade-in  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes sheet-in  { from { transform: translateY(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes sheet-out { from { transform: none; opacity: 1 } to { transform: translateY(40px); opacity: 0 } }
+@keyframes pop-in { from { transform: scale(0.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+.anim-fade-in  { animation: fade-in 0.22s ease-out both; }
+.anim-fade-out { animation: fade-out 0.22s ease-in both; }
+.anim-sheet-in  { animation: sheet-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anim-sheet-out { animation: sheet-out 0.22s ease-in both; }
+.anim-pop-in { animation: pop-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Logo } from "./Logo";
 
 type Props = { pool: number; onClose: () => void };
@@ -7,32 +7,39 @@ const REPO = "https://github.com/steamgram/steamgram";
 const AUTHOR = "https://github.com/DanielLavrushin";
 
 export function About({ pool, onClose }: Props) {
+  // Play the exit animation before unmounting.
+  const [closing, setClosing] = useState(false);
+  const close = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, 220);
+  }, [onClose]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [close]);
 
   return (
     <div
-      className="absolute inset-0 z-30 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
+      className={`absolute inset-0 z-30 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center ${closing ? "anim-fade-out" : "anim-fade-in"}`}
+      onClick={close}
       role="dialog"
       aria-modal="true"
       aria-label="About SteamGram"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="feed max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl"
+        className={`feed max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
       >
         <div className="flex items-start justify-between">
           <Logo className="h-14 w-auto" />
           <button
             type="button"
             aria-label="Close"
-            onClick={onClose}
+            onClick={close}
             className="-mr-2 -mt-2 flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <svg
@@ -55,11 +62,10 @@ export function About({ pool, onClose }: Props) {
 
         <div className="mt-4 space-y-3 text-sm leading-relaxed">
           <p>
-            Steam has over a hundred thousand games and you have seen the same
-            fifty on the front page for years. SteamGram is the other{" "}
-            {pool.toLocaleString()}: a bottomless feed of trailers for games you
-            have never heard of, most of them made by one or two people who
-            would love for you to notice.
+            Steam has close to 140,000 games and adds around 20,000 more every year. You have seen the same fifty on the
+            front page for as long as you can remember. SteamGram is for the rest: a bottomless feed of trailers for games you
+            have never heard of, most of them made by one or two people who would love for you to notice. There are{" "}
+            {pool.toLocaleString()} in the reel right now and the crawler keeps adding more.
           </p>
           <p>
             Swipe up for the next game, sideways for screenshots, tap the

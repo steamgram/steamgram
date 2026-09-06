@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { track } from '../analytics'
 import type { Game } from '../types'
+import { ExpandableText } from './ExpandableText'
 import { MediaCarousel } from './MediaCarousel'
 
 type Props = {
@@ -26,7 +26,6 @@ function year(date: string | null) {
 
 export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
-  const [expanded, setExpanded] = useState(false)
 
   return (
     <section className="relative h-dvh w-full snap-start snap-always overflow-hidden bg-black">
@@ -94,17 +93,11 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
             <p className="text-shadow mt-1 text-sm text-zinc-400">by {game.developers.slice(0, 2).join(', ')}</p>
           )}
 
-          <p
-            onClick={() => {
-              if (!expanded) track('expand_description', { appid: game.appid })
-              setExpanded((v) => !v)
-            }}
-            className={`text-shadow mt-2 cursor-pointer text-sm leading-relaxed text-zinc-200 sm:text-base ${
-              expanded ? '' : 'line-clamp-2 sm:line-clamp-4'
-            }`}
-          >
-            {game.short_description}
-          </p>
+          <ExpandableText
+            text={game.short_description}
+            className="text-shadow mt-2 text-sm leading-relaxed text-zinc-200 sm:text-base"
+            onExpand={() => track('expand_description', { appid: game.appid })}
+          />
 
           <div className="feed -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:-mx-8 sm:px-8">
             {(game.tags.length ? game.tags : game.genres).slice(0, 6).map((t) => (
