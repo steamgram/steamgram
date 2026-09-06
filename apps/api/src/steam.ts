@@ -37,6 +37,11 @@ function acquireSlot(prio: number): Promise<void> {
   })
 }
 
+/** How many requests are waiting for a slot; lets callers shed optional work under load. */
+export function pendingRequests(): number {
+  return waiters.length
+}
+
 export const PRIO_BACKGROUND = 0
 export const PRIO_INTERACTIVE = 10
 
@@ -155,6 +160,18 @@ export type AppDetails = {
   movies?: { id: number; name: string; thumbnail: string; hls_h264?: string; dash_h264?: string; highlight: boolean }[]
   recommendations?: { total: number }
   release_date?: { coming_soon: boolean; date: string }
+  required_age?: number | string
+  content_descriptors?: { ids: number[]; notes: string | null }
+}
+
+// Steam content descriptor ids: 1 some nudity/sexual content, 2 frequent violence/gore,
+// 3 adult-only sexual content, 4 frequent nudity/sexual content, 5 general mature content.
+const ADULT_DESCRIPTORS = new Set([1, 3, 4])
+
+/** True when Steam marks the game as sexual/adult content, or its tags do. */
+export function isAdult(d: AppDetails, tags: string[], adultTags: string[]): boolean {
+  if (d.content_descriptors?.ids.some((id) => ADULT_DESCRIPTORS.has(id))) return true
+  return tags.some((t) => adultTags.includes(t))
 }
 
 export async function appDetails(appid: number): Promise<AppDetails | null> {

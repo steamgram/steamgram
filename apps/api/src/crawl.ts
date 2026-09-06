@@ -1,5 +1,5 @@
-import { appDetails, decodeEntities, legacyMp4, loadTagMap, searchPage, type SearchHit } from './steam.js'
-import { countGames, isVisited, markVisited, saveGame, type Game } from './db.js'
+import { appDetails, decodeEntities, isAdult, legacyMp4, loadTagMap, searchPage, type SearchHit } from './steam.js'
+import { ADULT_TAGS, countGames, countUnchecked, isVisited, markVisited, saveGame, setAdult, uncheckedGames, type Game } from './db.js'
 
 const MIN_REVIEWS = 10 // below this the data is noise
 const MAX_TAGS = 6
@@ -24,6 +24,7 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
     .filter(([, v]) => v)
     .map(([k]) => k)
 
+  const tags = hit.tagids.map((id) => tagMap.get(id)).filter((t): t is string => !!t).slice(0, MAX_TAGS)
   const game: Game = {
     appid: d.steam_appid,
     name: decodeEntities(d.name),
@@ -35,7 +36,7 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
     trailer_thumb: movie?.thumbnail ?? null,
     screenshots,
     genres: (d.genres ?? []).map((g) => g.description),
-    tags: hit.tagids.map((id) => tagMap.get(id)).filter((t): t is string => !!t).slice(0, MAX_TAGS),
+    tags,
     developers: d.developers ?? [],
     platforms,
     is_free: d.is_free,
@@ -51,6 +52,7 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
     fetched_at: Date.now(),
     price_refreshed_at: Date.now(),
     reviews_refreshed_at: hit.reviewSummary ? Date.now() : null,
+    adult: isAdult(d, tags, ADULT_TAGS) ? 1 : 0,
   }
   saveGame(game)
   markVisited(hit.appid, 'ok')
@@ -85,11 +87,30 @@ export async function crawlOnce(): Promise<number> {
   return added
 }
 
+/** Rows crawled before the adult flag existed: check Steam's content descriptors for a few at a time. */
+async function recheckAdult(batch: number): Promise<void> {
+  const ids = uncheckedGames(batch)
+  for (const appid of ids) {
+    try {
+      const d = await appDetails(appid)
+      const g = d ? isAdult(d, [], ADULT_TAGS) : false
+      setAdult(appid, g)
+      if (g) log(`flagged adult: ${d?.name ?? appid} (${appid})`)
+    } catch (err) {
+      // Leave it NULL for a later pass; the throttle already backs off on rate limits.
+      log(`recheck ${appid} failed: ${(err as Error).message}`)
+    }
+  }
+  if (ids.length) log(`content check: ${countUnchecked()} games left to check`)
+}
+
 export async function crawlForever(opts: { target?: number } = {}) {
   const target = opts.target ?? Infinity
-  while (countGames() < target) {
+  while (countGames() < target || countUnchecked() > 0) {
     try {
-      await crawlOnce()
+      await recheckAdult(25)
+      if (countGames() < target) await crawlOnce()
+      else await new Promise((r) => setTimeout(r, 1000))
       log(`pool size: ${countGames()}`)
     } catch (err) {
       log(`crawl step failed: ${(err as Error).message}`)

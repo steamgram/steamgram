@@ -7,6 +7,9 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const dataDir = path.resolve(here, '..', 'data')
 mkdirSync(dataDir, { recursive: true })
 
+/** Steam tags that mark a game as adult content. Matched against the stored tag list. */
+export const ADULT_TAGS = ['Sexual Content', 'Hentai', 'NSFW', 'Nudity']
+
 export const db = new DatabaseSync(path.join(dataDir, 'steamgram.sqlite'))
 db.exec('PRAGMA journal_mode = WAL')
 db.exec('PRAGMA busy_timeout = 5000') // wait instead of throwing SQLITE_BUSY when a writer overlaps
@@ -52,6 +55,13 @@ db.exec(`
 const cols = new Set((db.prepare('PRAGMA table_info(games)').all() as { name: string }[]).map((c) => c.name))
 if (!cols.has('price_refreshed_at')) db.exec('ALTER TABLE games ADD COLUMN price_refreshed_at INTEGER')
 if (!cols.has('reviews_refreshed_at')) db.exec('ALTER TABLE games ADD COLUMN reviews_refreshed_at INTEGER')
+if (!cols.has('adult')) {
+  // NULL = not yet checked against Steam's content descriptors; the crawler fills these in.
+  db.exec('ALTER TABLE games ADD COLUMN adult INTEGER')
+  db.prepare(
+    `UPDATE games SET adult = 1 WHERE ${ADULT_TAGS.map(() => 'tags LIKE ?').join(' OR ')}`,
+  ).run(...ADULT_TAGS.map((t) => `%"${t}"%`))
+}
 
 export type GameRow = {
   appid: number
@@ -80,6 +90,7 @@ export type GameRow = {
   fetched_at: number
   price_refreshed_at: number | null
   reviews_refreshed_at: number | null
+  adult: number | null
 }
 
 export type Game = Omit<GameRow, 'screenshots' | 'genres' | 'tags' | 'developers' | 'platforms' | 'is_free'> & {
@@ -109,13 +120,13 @@ const insertGame = db.prepare(`
     trailer_mp4, trailer_hls, trailer_thumb, screenshots, genres, tags, developers, platforms,
     is_free, price_final, price_initial, discount_percent, price_formatted, release_date,
     review_summary, review_percent, review_count, metacritic, fetched_at,
-    price_refreshed_at, reviews_refreshed_at
+    price_refreshed_at, reviews_refreshed_at, adult
   ) VALUES (
     @appid, @name, @short_description, @header_image, @background,
     @trailer_mp4, @trailer_hls, @trailer_thumb, @screenshots, @genres, @tags, @developers, @platforms,
     @is_free, @price_final, @price_initial, @discount_percent, @price_formatted, @release_date,
     @review_summary, @review_percent, @review_count, @metacritic, @fetched_at,
-    @price_refreshed_at, @reviews_refreshed_at
+    @price_refreshed_at, @reviews_refreshed_at, @adult
   )
 `)
 
@@ -168,13 +179,26 @@ export function isVisited(appid: number): boolean {
 }
 
 export function countGames(): number {
-  const r = db.prepare('SELECT COUNT(*) AS n FROM games').get() as { n: number }
+  const r = db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NOT 1').get() as { n: number }
   return r.n
+}
+
+export function setAdult(appid: number, adult: boolean) {
+  db.prepare('UPDATE games SET adult = ? WHERE appid = ?').run(adult ? 1 : 0, appid)
+}
+
+/** Games not yet checked against Steam's content descriptors, oldest first. */
+export function uncheckedGames(limit: number): number[] {
+  return (db.prepare('SELECT appid FROM games WHERE adult IS NULL ORDER BY RANDOM() LIMIT ?').all(limit) as { appid: number }[]).map((r) => r.appid)
+}
+
+export function countUnchecked(): number {
+  return (db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NULL').get() as { n: number }).n
 }
 
 export function randomGames(limit: number, exclude: number[]): Game[] {
   const placeholders = exclude.map(() => '?').join(',')
-  const where = exclude.length ? `WHERE appid NOT IN (${placeholders})` : ''
+  const where = `WHERE adult IS NOT 1${exclude.length ? ` AND appid NOT IN (${placeholders})` : ''}`
   const rows = db
     .prepare(`SELECT * FROM games ${where} ORDER BY RANDOM() LIMIT ?`)
     .all(...exclude, limit) as GameRow[]
@@ -182,7 +206,7 @@ export function randomGames(limit: number, exclude: number[]): Game[] {
 }
 
 export function getGame(appid: number): Game | null {
-  const r = db.prepare('SELECT * FROM games WHERE appid = ?').get(appid) as GameRow | undefined
+  const r = db.prepare('SELECT * FROM games WHERE appid = ? AND adult IS NOT 1').get(appid) as GameRow | undefined
   return r ? rowToGame(r) : null
 }
 
