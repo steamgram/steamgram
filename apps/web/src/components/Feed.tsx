@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchFeed, fetchGame } from '../api'
+import { track } from '../analytics'
 import type { Game } from '../types'
 import { GameCard } from './GameCard'
 import { Logo } from './Logo'
@@ -41,6 +42,7 @@ export function Feed() {
   const share = useCallback(async (g: Game) => {
     const url = `${window.location.origin}/?game=${g.appid}`
     const payload = { title: g.name, text: `${g.name} on SteamGram`, url }
+    track('share', { appid: g.appid, game: g.name, method: 'share' in navigator ? 'native' : 'copy' })
     try {
       if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
         await navigator.share(payload)
@@ -75,6 +77,12 @@ export function Feed() {
     root.querySelectorAll<HTMLElement>('[data-index]').forEach((el) => io.observe(el))
     return () => io.disconnect()
   }, [games.length])
+
+  // Analytics: one event per card that reaches the screen.
+  useEffect(() => {
+    const g = games[active]
+    if (g) track('game_view', { appid: g.appid, game: g.name, position: active + 1 })
+  }, [active, games])
 
   // Prefetch when we are close to the end.
   useEffect(() => {
@@ -125,7 +133,10 @@ export function Feed() {
               active={i === active}
               nearby={Math.abs(i - active) <= 1}
               muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
+              onToggleMute={() => {
+                if (muted) track('unmute', { appid: g.appid })
+                setMuted((m) => !m)
+              }}
               onShare={() => share(g)}
             />
           </div>

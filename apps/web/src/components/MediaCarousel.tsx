@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { track } from '../analytics'
 import type { Game } from '../types'
 import { TrailerVideo } from './TrailerVideo'
 
@@ -30,8 +31,12 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
   const onScroll = useCallback(() => {
     const el = ref.current
     if (!el || el.clientWidth === 0) return
-    setIndex(Math.round(el.scrollLeft / el.clientWidth))
-  }, [])
+    const next = Math.round(el.scrollLeft / el.clientWidth)
+    setIndex((prev) => {
+      if (next !== prev && next > 0) track('media_swipe', { appid: game.appid, slide: next })
+      return next
+    })
+  }, [game.appid])
 
   const go = useCallback(
     (i: number) => {

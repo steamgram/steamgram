@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { track } from '../analytics'
 import type { Game } from '../types'
 import { MediaCarousel } from './MediaCarousel'
 
@@ -58,6 +59,7 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
           target="_blank"
           rel="noreferrer"
           aria-label="Open on Steam"
+          onClick={() => track('open_steam', { appid: game.appid, game: game.name })}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-steam/80"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
@@ -93,7 +95,10 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
           )}
 
           <p
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => {
+              if (!expanded) track('expand_description', { appid: game.appid })
+              setExpanded((v) => !v)
+            }}
             className={`text-shadow mt-2 cursor-pointer text-sm leading-relaxed text-zinc-200 sm:text-base ${
               expanded ? '' : 'line-clamp-2 sm:line-clamp-4'
             }`}
