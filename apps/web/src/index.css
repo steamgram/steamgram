@@ -31,3 +31,11 @@ html, body, #root {
 .text-shadow {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.6);
 }
+
+@keyframes logo-pulse {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(14px); }
+}
+.logo-pulse {
+  animation: logo-pulse 1.4s ease-in-out infinite;
+}

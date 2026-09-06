@@ -4,6 +4,7 @@ import { fetchFeed } from '../api'
 import { useLikes } from '../hooks/useLikes'
 import type { Game } from '../types'
 import { GameCard } from './GameCard'
+import { Logo } from './Logo'
 
 export function Feed() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending, error } = useInfiniteQuery({
@@ -107,7 +108,8 @@ export function Feed() {
 
 function Splash({ text }: { text: string }) {
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-[#0b0f17] p-8 text-center text-zinc-300">
+    <div className="flex h-dvh flex-col items-center justify-center gap-5 bg-[#0b0f17] p-8 text-center text-zinc-300">
+      <Logo className="h-28 w-auto" pulse />
       <span className="text-3xl font-black tracking-tight text-white">Steam<span className="text-steam">Gram</span></span>
       <p className="max-w-md text-sm">{text}</p>
     </div>
