@@ -54,8 +54,13 @@ html, body, #root {
 /* Phones held sideways: keep the info panel short and narrow so most of the
    media stays free for horizontal swipes. */
 @media (orientation: landscape) and (max-height: 520px) {
-  .info-panel { padding-top: 2.5rem; padding-bottom: 0.75rem; }
+  .info-panel { padding-top: 2.5rem; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem); }
   .info-panel .info-content { max-width: 60%; }
   .info-panel h2 { font-size: 1.375rem; line-height: 1.2; }
   .info-panel p.clamped { -webkit-line-clamp: 2 !important; }
 }
+
+/* Installed on iPhone the page extends under the status bar and home indicator. */
+.safe-top    { padding-top:    calc(env(safe-area-inset-top, 0px) + 1.25rem); }
+.safe-seg    { top:            calc(env(safe-area-inset-top, 0px) + 0.5rem); }
+.safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem); }

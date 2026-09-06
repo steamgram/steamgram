@@ -10,6 +10,8 @@ type Props = {
   muted: boolean
   onToggleMute: () => void
   onShare: () => void
+  showInfo: boolean
+  onToggleInfo: () => void
 }
 
 function reviewColor(pct: number | null) {
@@ -24,7 +26,7 @@ function year(date: string | null) {
   return m ? m[0] : null
 }
 
-export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }: Props) {
+export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
 
   return (
@@ -65,10 +67,26 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
             <path d="M12 2a10 10 0 0 0-9.97 9.2l5.36 2.22a2.83 2.83 0 0 1 1.6-.5h.16l2.38-3.46v-.05a3.77 3.77 0 1 1 3.77 3.77h-.09l-3.4 2.43v.13a2.83 2.83 0 0 1-5.62.44L2.4 14.6A10 10 0 1 0 12 2zm-3.7 15.2-1.23-.51a2.13 2.13 0 0 0 3.94-.1 2.12 2.12 0 0 0-1.15-2.77l-1.27-.53a1.5 1.5 0 0 1 1.96-.03l1.29.53a2.1 2.1 0 0 1-3.54 3.41zm7.03-6.7a2.51 2.51 0 1 1 0-5.02 2.51 2.51 0 0 1 0 5.02zm0-4.4a1.89 1.89 0 1 0 0 3.78 1.89 1.89 0 0 0 0-3.78z" />
           </svg>
         </a>
+        <RailButton label={showInfo ? 'Hide info' : 'Show info'} onClick={onToggleInfo}>
+          {showInfo ? (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10.4 10.4 0 0 1 12 5c5 0 9 4 10 7a11.6 11.6 0 0 1-2.2 3.3M6.6 6.6C4.3 8 2.7 10.1 2 12c1 3 5 7 10 7a9.7 9.7 0 0 0 4.4-1" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12c1-3 5-7 10-7s9 4 10 7c-1 3-5 7-10 7S3 15 2 12z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+        </RailButton>
       </div>
 
       {/* bottom info */}
-      <div className="info-panel pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pb-6 pt-20 sm:px-8 sm:pb-8 sm:pt-24">
+      <div
+        aria-hidden={!showInfo}
+        className={`info-panel safe-bottom pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pt-20 transition-all duration-300 ease-out sm:px-8 sm:pt-24 ${
+          showInfo ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 [&_*]:pointer-events-none'
+        }`}
+      >
         <div className="info-content max-w-2xl">
           <div className="text-shadow mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-300">
             {game.review_summary && (

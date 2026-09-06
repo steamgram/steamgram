@@ -39,6 +39,24 @@ export function Feed() {
   const [muted, setMuted] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [showInfo, setShowInfo] = useState(() => {
+    try {
+      return localStorage.getItem('steamgram:showInfo') !== '0'
+    } catch {
+      return true
+    }
+  })
+  const toggleInfo = useCallback(() => {
+    setShowInfo((v) => {
+      try {
+        localStorage.setItem('steamgram:showInfo', v ? '0' : '1')
+      } catch {
+        /* ignore */
+      }
+      track('toggle_info', { visible: !v })
+      return !v
+    })
+  }, [])
   const containerRef = useRef<HTMLDivElement>(null)
 
   const share = useCallback(async (g: Game) => {
@@ -105,11 +123,12 @@ export function Feed() {
       if (['ArrowDown', 'j', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); scrollTo(Math.min(active + 1, games.length - 1)) }
       else if (['ArrowUp', 'k', 'PageUp'].includes(e.key)) { e.preventDefault(); scrollTo(Math.max(active - 1, 0)) }
       else if (e.key === 'm') setMuted((m) => !m)
+      else if (e.key === 'i') toggleInfo()
       else if (e.key === 's' && games[active]) share(games[active])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, games, scrollTo, share, aboutOpen])
+  }, [active, games, scrollTo, share, aboutOpen, toggleInfo])
 
   if (isPending) return <Splash text="Warming up the trailer reel…" />
   if (error) return <Splash text={`Could not reach the API: ${(error as Error).message}. Is \`pnpm dev:api\` running?`} />
@@ -117,7 +136,7 @@ export function Feed() {
 
   return (
     <div className="relative h-dvh bg-black">
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pb-3 pt-5 text-white sm:px-6">
+      <header className="safe-top pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pb-3 text-white sm:px-6">
         <button
           type="button"
           aria-label="About SteamGram"
@@ -148,6 +167,8 @@ export function Feed() {
                 setMuted((m) => !m)
               }}
               onShare={() => share(g)}
+              showInfo={showInfo}
+              onToggleInfo={toggleInfo}
             />
           </div>
         ))}

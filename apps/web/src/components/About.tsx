@@ -32,7 +32,7 @@ export function About({ pool, onClose }: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`feed max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
+        className={`feed max-h-[90dvh] w-full max-w-md overflow-y-auto safe-bottom rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
       >
         <div className="flex items-start justify-between">
           <Logo className="h-14 w-auto" />
@@ -82,7 +82,8 @@ export function About({ pool, onClose }: Props) {
             <kbd className="rounded bg-white/10 px-1">K</kbd> next and previous,{" "}
             <kbd className="rounded bg-white/10 px-1">←</kbd>{" "}
             <kbd className="rounded bg-white/10 px-1">→</kbd> media,{" "}
-            <kbd className="rounded bg-white/10 px-1">M</kbd> mute,{" "}
+            <kbd className="rounded bg-white/10 px-1">M</kbd> mute, <kbd className="rounded bg-white/10 px-1">I</kbd> info,{" "}
+            {" "}
             <kbd className="rounded bg-white/10 px-1">S</kbd> share
           </dd>
           <dt className="font-medium text-zinc-300">Made by</dt>
