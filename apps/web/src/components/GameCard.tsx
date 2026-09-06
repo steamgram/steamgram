@@ -31,7 +31,7 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
       <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
 
       {/* gradients for legibility */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/95 via-black/65 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black via-black/75 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
 
       {/* right action rail */}
