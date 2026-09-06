@@ -9,7 +9,7 @@
       <stop offset="1" stop-color="#4da8e0"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#bg)"/>
   <!-- play triangle, centered in the maskable safe zone -->
   <path d="M196 150 L356 246 a12 12 0 0 1 0 20 L196 362 a12 12 0 0 1 -18 -10 V160 a12 12 0 0 1 18 -10 Z" fill="url(#play)"/>
   <!-- scroll hint -->
