@@ -1,0 +1,12 @@
+{
+  "name": "steamgram",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "crawl": "pnpm --filter api crawl",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck"
+  }
+}

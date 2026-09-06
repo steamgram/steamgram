@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-steam: #66c0f4;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #0b0f17;
+  color: #e6edf3;
+  overscroll-behavior-y: none;
+}
+
+.feed {
+  scrollbar-width: none;
+}
+.feed::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes kenburns {
+  0%   { transform: scale(1.0) translate(0, 0); }
+  100% { transform: scale(1.12) translate(-1.5%, -1%); }
+}
+.kenburns {
+  animation: kenburns 9s ease-in-out infinite alternate;
+}
