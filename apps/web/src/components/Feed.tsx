@@ -5,6 +5,7 @@ import { track } from '../analytics'
 import type { Game } from '../types'
 import { GameCard } from './GameCard'
 import { Logo } from './Logo'
+import { About } from './About'
 
 export function Feed() {
   // A shared link (?game=APPID) opens the feed on that game.
@@ -37,6 +38,7 @@ export function Feed() {
   const [active, setActive] = useState(0)
   const [muted, setMuted] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const share = useCallback(async (g: Game) => {
@@ -99,7 +101,7 @@ export function Feed() {
   // Keyboard: j/k, arrows, space; m to mute; s to share.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return
+      if (e.target instanceof HTMLInputElement || aboutOpen) return
       if (['ArrowDown', 'j', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); scrollTo(Math.min(active + 1, games.length - 1)) }
       else if (['ArrowUp', 'k', 'PageUp'].includes(e.key)) { e.preventDefault(); scrollTo(Math.max(active - 1, 0)) }
       else if (e.key === 'm') setMuted((m) => !m)
@@ -107,7 +109,7 @@ export function Feed() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, games, scrollTo, share])
+  }, [active, games, scrollTo, share, aboutOpen])
 
   if (isPending) return <Splash text="Warming up the trailer reel…" />
   if (error) return <Splash text={`Could not reach the API: ${(error as Error).message}. Is \`pnpm dev:api\` running?`} />
@@ -116,10 +118,18 @@ export function Feed() {
   return (
     <div className="relative h-dvh bg-black">
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pb-3 pt-5 text-white sm:px-6">
-        <div className="flex items-center gap-2 rounded-full bg-black/35 py-1 pl-2 pr-3 backdrop-blur-sm">
+        <button
+          type="button"
+          aria-label="About SteamGram"
+          onClick={() => {
+            track('open_about')
+            setAboutOpen(true)
+          }}
+          className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/35 py-1 pl-2 pr-3 backdrop-blur-sm transition hover:bg-black/50"
+        >
           <Logo className="h-6 w-auto" />
           <span className="text-lg font-black tracking-tight">Steam<span className="text-steam">Gram</span></span>
-        </div>
+        </button>
         <span className="rounded-full bg-black/35 px-3 py-1 text-xs text-zinc-300 backdrop-blur-sm">
           {pool.toLocaleString()} games
         </span>
@@ -143,6 +153,8 @@ export function Feed() {
         ))}
         {isFetchingNextPage && <div className="flex h-24 items-center justify-center text-sm text-zinc-500">Loading more…</div>}
       </div>
+
+      {aboutOpen && <About pool={pool} onClose={() => setAboutOpen(false)} />}
 
       {toast && (
         <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center">

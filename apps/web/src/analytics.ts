@@ -27,7 +27,7 @@ export function initAnalytics() {
   document.head.appendChild(s)
 }
 
-export type EventName = 'game_view' | 'share' | 'open_steam' | 'unmute' | 'media_swipe' | 'expand_description'
+export type EventName = 'game_view' | 'share' | 'open_steam' | 'unmute' | 'media_swipe' | 'expand_description' | 'open_about'
 
 export function track(name: EventName, params: Record<string, string | number | boolean> = {}) {
   if (!enabled || !window.gtag) return
