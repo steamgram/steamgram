@@ -107,12 +107,14 @@ const insertGame = db.prepare(`
     appid, name, short_description, header_image, background,
     trailer_mp4, trailer_hls, trailer_thumb, screenshots, genres, tags, developers, platforms,
     is_free, price_final, price_initial, discount_percent, price_formatted, release_date,
-    review_summary, review_percent, review_count, metacritic, fetched_at
+    review_summary, review_percent, review_count, metacritic, fetched_at,
+    price_refreshed_at, reviews_refreshed_at
   ) VALUES (
     @appid, @name, @short_description, @header_image, @background,
     @trailer_mp4, @trailer_hls, @trailer_thumb, @screenshots, @genres, @tags, @developers, @platforms,
     @is_free, @price_final, @price_initial, @discount_percent, @price_formatted, @release_date,
-    @review_summary, @review_percent, @review_count, @metacritic, @fetched_at
+    @review_summary, @review_percent, @review_count, @metacritic, @fetched_at,
+    @price_refreshed_at, @reviews_refreshed_at
   )
 `)
 
