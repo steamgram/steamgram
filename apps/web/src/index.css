@@ -88,3 +88,12 @@ html, body, #root {
     padding-top: 0;
   }
 }
+
+/* Viewports wider than the trailers themselves (phones in landscape, ultrawide
+   windows): fit the full height and let the sides go, rather than cropping the
+   top and bottom of the frame. */
+@media (min-aspect-ratio: 16/9) {
+  .trailer {
+    object-fit: contain;
+  }
+}

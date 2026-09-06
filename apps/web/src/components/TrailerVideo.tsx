@@ -95,9 +95,16 @@ export function TrailerVideo({ game, active, nearby, muted }: Props) {
           </div>
         </div>
       )}
+      {/* Blurred poster behind the video: only visible when the video is letterboxed (wide viewports). */}
+      <img
+        src={game.trailer_thumb ?? game.header_image}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-50"
+      />
       <video
         ref={ref}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="trailer absolute inset-0 h-full w-full object-cover"
         poster={game.trailer_thumb ?? game.header_image}
         muted={muted}
         loop
