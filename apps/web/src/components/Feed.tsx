@@ -76,11 +76,11 @@ export function Feed() {
   return (
     <div className="relative h-dvh bg-black">
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-3 text-white sm:px-6">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2 rounded-full bg-black/35 px-3 py-1 backdrop-blur-sm">
           <span className="text-lg font-black tracking-tight">Steam<span className="text-steam">Gram</span></span>
-          <span className="text-xs text-zinc-400">{pool.toLocaleString()} games in the pool</span>
+          <span className="text-xs text-zinc-300">{pool.toLocaleString()} games</span>
         </div>
-        <span className="text-xs text-zinc-400">
+        <span className="rounded-full bg-black/35 px-3 py-1 text-xs text-zinc-300 backdrop-blur-sm">
           {active + 1}/{games.length} · {likes.size} liked
         </span>
       </header>

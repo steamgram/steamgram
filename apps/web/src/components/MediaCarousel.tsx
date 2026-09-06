@@ -70,7 +70,7 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
         style={{ overscrollBehaviorX: 'contain' }}
       >
         {items.map((it, i) => (
-          <div key={i} className="relative h-full w-full shrink-0 snap-start snap-always">
+          <div key={i} className="relative h-full w-full shrink-0 snap-start snap-always overflow-hidden">
             {it.kind === 'video' ? (
               <TrailerVideo game={game} active={active && index === i} nearby={nearby} muted={muted} />
             ) : nearby && Math.abs(i - index) <= 1 ? (

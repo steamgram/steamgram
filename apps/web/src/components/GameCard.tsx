@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Game } from '../types'
 import { MediaCarousel } from './MediaCarousel'
 
@@ -25,14 +26,14 @@ function year(date: string | null) {
 
 export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onToggleLike }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <section className="relative h-dvh w-full snap-start snap-always overflow-hidden bg-black">
       <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
 
-      {/* gradients for legibility */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black via-black/75 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
+      {/* thin strip so the header never sits on pure white */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
 
       {/* right action rail */}
       <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 sm:right-5">
@@ -66,9 +67,9 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
       </div>
 
       {/* bottom info */}
-      <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pb-6 pt-20 sm:px-8 sm:pb-8 sm:pt-24">
         <div className="max-w-2xl">
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-300">
+          <div className="text-shadow mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-300">
             {game.review_summary && (
               <span className={reviewColor(game.review_percent)}>
                 {game.review_summary}
@@ -86,18 +87,23 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
             {game.metacritic ? <span className="text-zinc-500">· Metacritic {game.metacritic}</span> : null}
           </div>
 
-          <h2 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow sm:text-4xl">{game.name}</h2>
+          <h2 className="text-shadow text-2xl font-bold leading-tight tracking-tight text-white sm:text-4xl">{game.name}</h2>
           {game.developers.length > 0 && (
-            <p className="mt-1 text-sm text-zinc-400">by {game.developers.slice(0, 2).join(', ')}</p>
+            <p className="text-shadow mt-1 text-sm text-zinc-400">by {game.developers.slice(0, 2).join(', ')}</p>
           )}
 
-          <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-zinc-200 sm:line-clamp-5 sm:text-base">
+          <p
+            onClick={() => setExpanded((v) => !v)}
+            className={`text-shadow mt-2 cursor-pointer text-sm leading-relaxed text-zinc-200 sm:text-base ${
+              expanded ? '' : 'line-clamp-2 sm:line-clamp-4'
+            }`}
+          >
             {game.short_description}
           </p>
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="feed -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:-mx-8 sm:px-8">
             {(game.tags.length ? game.tags : game.genres).slice(0, 6).map((t) => (
-              <span key={t} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-zinc-200 backdrop-blur">
+              <span key={t} className="shrink-0 rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-zinc-200 backdrop-blur">
                 {t}
               </span>
             ))}
