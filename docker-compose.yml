@@ -10,6 +10,11 @@ services:
       - steamgram-data:/app/apps/api/data
     environment:
       CRAWL_TARGET: "5000"
+    # Alpine's musl resolver returns EAI_AGAIN through Docker's embedded DNS on this host;
+    # public resolvers sidestep the router quirk.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
