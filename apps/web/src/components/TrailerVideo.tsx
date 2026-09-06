@@ -44,16 +44,22 @@ export function TrailerVideo({ game, active, nearby, muted }: Props) {
     return () => hls.destroy()
   }, [game, nearby, useHls, failed])
 
+  // React does not reliably update the `muted` property after mount, so set it by hand.
+  useEffect(() => {
+    if (ref.current) ref.current.muted = muted
+  }, [muted, useHls, failed, nearby])
+
   // Play / pause based on visibility.
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    el.muted = muted
     if (active) {
       el.play().catch(() => {/* autoplay blocked until user gesture */})
     } else {
       el.pause()
     }
-  }, [active, useHls])
+  }, [active, useHls, muted])
 
   if (failed) return <ScreenshotFallback game={game} active={active} />
   if (!nearby) {

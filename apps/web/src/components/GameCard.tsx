@@ -35,19 +35,19 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent" />
 
       {/* right action rail */}
-      <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 sm:right-5">
+      <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 sm:right-5">
         <RailButton label={liked ? 'Unlike' : 'Like'} onClick={onToggleLike} active={liked}>
-          <svg viewBox="0 0 24 24" className="h-7 w-7" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
           </svg>
         </RailButton>
         <RailButton label={muted ? 'Unmute' : 'Mute'} onClick={onToggleMute}>
           {muted ? (
-            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 5 6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
             </svg>
           ) : (
-            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
             </svg>
           )}
@@ -57,16 +57,16 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
           target="_blank"
           rel="noreferrer"
           aria-label="Open on Steam"
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-steam/80"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-steam/80"
         >
-          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
             <path d="M12 2a10 10 0 0 0-9.97 9.2l5.36 2.22a2.83 2.83 0 0 1 1.6-.5h.16l2.38-3.46v-.05a3.77 3.77 0 1 1 3.77 3.77h-.09l-3.4 2.43v.13a2.83 2.83 0 0 1-5.62.44L2.4 14.6A10 10 0 1 0 12 2zm-3.7 15.2-1.23-.51a2.13 2.13 0 0 0 3.94-.1 2.12 2.12 0 0 0-1.15-2.77l-1.27-.53a1.5 1.5 0 0 1 1.96-.03l1.29.53a2.1 2.1 0 0 1-3.54 3.41zm7.03-6.7a2.51 2.51 0 1 1 0-5.02 2.51 2.51 0 0 1 0 5.02zm0-4.4a1.89 1.89 0 1 0 0 3.78 1.89 1.89 0 0 0 0-3.78z" />
           </svg>
         </a>
       </div>
 
       {/* bottom info */}
-      <div className="absolute inset-x-0 bottom-0 p-4 pb-8 pr-20 sm:p-8 sm:pr-28">
+      <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8">
         <div className="max-w-2xl">
           <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-300">
             {game.review_summary && (
@@ -125,7 +125,7 @@ function RailButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur transition ${
+      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur transition ${
         active ? 'bg-rose-500/80 text-white' : 'bg-white/10 text-white hover:bg-white/20'
       }`}
     >
