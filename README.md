@@ -48,6 +48,23 @@ pnpm crawl 500    # crawl until the pool holds 500 games
   over the background crawler in the shared rate limiter.
 - Likes live in `localStorage` for now.
 
+## Deploy
+
+Production runs as a single Docker container (API + static web bundle) behind
+nginx. See [`Dockerfile`](Dockerfile), [`docker-compose.yml`](docker-compose.yml)
+and [`deploy/`](deploy/).
+
+```sh
+docker compose up -d --build     # listens on 127.0.0.1:20090
+sudo cp deploy/nginx.steamgram.app.conf /etc/nginx/sites-available/steamgram.app
+sudo ln -s /etc/nginx/sites-available/steamgram.app /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d steamgram.app -d www.steamgram.app
+```
+
+To ship a new version: push to `main`, then run `deploy/deploy.sh` on the server.
+The SQLite pool lives in the `steamgram-data` volume and survives rebuilds.
+
 ## License
 
 [MIT](LICENSE)
