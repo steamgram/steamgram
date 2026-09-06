@@ -7,7 +7,7 @@
     "crawl": "tsx src/crawl.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/server.js"
+    "start": "node --no-warnings=ExperimentalWarning dist/server.js"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
