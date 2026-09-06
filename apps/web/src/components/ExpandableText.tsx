@@ -1,16 +1,16 @@
 import { useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
-type Props = { text: string; className?: string; onExpand?: () => void }
+type Props = { text: string; className?: string; wrapperClassName?: string; onExpand?: () => void }
 
-const CLAMP = ['line-clamp-2', 'sm:line-clamp-4']
+const CLAMP = ['clamped', 'line-clamp-2', 'sm:line-clamp-4']
 
 /**
  * Clamped text that grows and shrinks smoothly on tap. The clamp classes hide
  * the overflow; the wrapper's max-height is animated between measured sizes.
  * Heights are measured synchronously so the animation never depends on timing.
  */
-export function ExpandableText({ text, className = '', onExpand }: Props) {
+export function ExpandableText({ text, className = '', wrapperClassName = '', onExpand }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [clamped, setClamped] = useState(true)
   const wrap = useRef<HTMLDivElement>(null)
@@ -55,7 +55,7 @@ export function ExpandableText({ text, className = '', onExpand }: Props) {
       ref={wrap}
       onClick={toggle}
       onTransitionEnd={onTransitionEnd}
-      className="cursor-pointer overflow-hidden transition-[max-height] duration-300 ease-out"
+      className={`cursor-pointer overflow-hidden transition-[max-height] duration-300 ease-out ${wrapperClassName}`}
     >
       <p ref={para} className={`${className} ${clamped ? CLAMP.join(' ') : ''}`}>
         {text}

@@ -68,8 +68,8 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
       </div>
 
       {/* bottom info */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pb-6 pt-20 sm:px-8 sm:pb-8 sm:pt-24">
-        <div className="max-w-2xl">
+      <div className="info-panel pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pb-6 pt-20 sm:px-8 sm:pb-8 sm:pt-24">
+        <div className="info-content max-w-2xl">
           <div className="text-shadow mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-300">
             {game.review_summary && (
               <span className={reviewColor(game.review_percent)}>
@@ -96,10 +96,11 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare }:
           <ExpandableText
             text={game.short_description}
             className="text-shadow mt-2 text-sm leading-relaxed text-zinc-200 sm:text-base"
+            wrapperClassName="pointer-events-auto"
             onExpand={() => track('expand_description', { appid: game.appid })}
           />
 
-          <div className="feed -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:-mx-8 sm:px-8">
+          <div className="feed pointer-events-auto -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 sm:-mx-8 sm:px-8">
             {(game.tags.length ? game.tags : game.genres).slice(0, 6).map((t) => (
               <span key={t} className="shrink-0 rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-zinc-200 backdrop-blur">
                 {t}

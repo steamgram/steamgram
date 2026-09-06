@@ -50,3 +50,12 @@ html, body, #root {
 .anim-sheet-in  { animation: sheet-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .anim-sheet-out { animation: sheet-out 0.22s ease-in both; }
 .anim-pop-in { animation: pop-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Phones held sideways: keep the info panel short and narrow so most of the
+   media stays free for horizontal swipes. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .info-panel { padding-top: 2.5rem; padding-bottom: 0.75rem; }
+  .info-panel .info-content { max-width: 60%; }
+  .info-panel h2 { font-size: 1.375rem; line-height: 1.2; }
+  .info-panel p.clamped { -webkit-line-clamp: 2 !important; }
+}
