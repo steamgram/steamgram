@@ -3,6 +3,12 @@
 Doomscroll Steam. A full-screen vertical feed of trailers for games you have
 probably never heard of, in the style of TikTok / Instagram Reels.
 
+> SteamGram is an independent fan project. It is not affiliated with, endorsed
+> by, or sponsored by Valve Corporation. Steam and the Steam logo are trademarks
+> of Valve Corporation. All game titles, trailers, screenshots and descriptions
+> belong to their respective developers and publishers and are loaded directly
+> from Steam's servers.
+
 ## Stack
 
 - `apps/web` — Vite + React 19 + TypeScript + Tailwind v4, TanStack Query for the
@@ -41,3 +47,7 @@ pnpm crawl 500    # crawl until the pool holds 500 games
   games actually seen, not with pool size. Interactive refreshes take priority
   over the background crawler in the shared rate limiter.
 - Likes live in `localStorage` for now.
+
+## License
+
+[MIT](LICENSE)

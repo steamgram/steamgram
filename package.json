@@ -1,6 +1,7 @@
 {
   "name": "steamgram",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm -r --parallel --stream run dev",
     "dev:web": "pnpm --filter web dev",
