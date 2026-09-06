@@ -44,5 +44,5 @@ serve({ fetch: app.fetch, port }, () => {
 
 // Keep the pool growing in the background unless disabled.
 if (process.env.CRAWL !== '0') {
-  crawlForever({ target: Number(process.env.CRAWL_TARGET) || 3000 })
+  crawlForever({ target: Number(process.env.CRAWL_TARGET) || Infinity })
 }

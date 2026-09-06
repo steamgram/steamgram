@@ -24,16 +24,25 @@ pnpm install
 pnpm dev          # api on :3001 (crawler runs in the background), web on :5173
 ```
 
-The API keeps crawling until the pool reaches `CRAWL_TARGET` (default 3000).
-Set `CRAWL=0` to disable the background crawler, or run it standalone:
+The API crawls Steam in the background for as long as it runs. Discovery slows
+down as the catalogue is exhausted and the newest releases are swept once a day,
+so the pool keeps growing on its own. Set `CRAWL=0` to disable the crawler, or
+`CRAWL_TARGET=<n>` to stop discovering once the pool holds that many games.
 
 ```sh
-pnpm crawl 500    # crawl until the pool holds 500 games
+pnpm crawl        # run the crawler on its own, without the API
 ```
+
+## What goes in the pool
+
+A game is kept when Steam lists it as a released game with a trailer or
+screenshots and at least ten reviews. Games Steam marks as sexual or adult
+content, by content descriptor or by tag, are stored but flagged and never
+served. Games that were too new to have reviews are retried after two weeks.
 
 ## Keys
 
-`j` / `↓` / space next · `k` / `↑` previous · `←` `→` media · `m` mute · `s` share
+`j` / `↓` / space next · `k` / `↑` previous · `←` `→` media · `m` mute · `s` share · `i` hide info · tap the video to pause
 
 ## Notes
 
@@ -46,7 +55,11 @@ pnpm crawl 500    # crawl until the pool holds 500 games
   2.5s cap so the client never waits long. Steam traffic therefore scales with
   games actually seen, not with pool size. Interactive refreshes take priority
   over the background crawler in the shared rate limiter.
-- Share uses the native share sheet where available and copies a `?game=APPID` link otherwise; that link opens the feed on that game.
+- Share uses the native share sheet where available and copies a `?game=APPID`
+  link otherwise; that link opens the feed on that game.
+- The web app is an installable PWA with an app-shell service worker; the API
+  and Steam media are never cached. Google Analytics loads only in production
+  builds, from `VITE_GA_ID` in `apps/web/.env.production`.
 
 ## Deploy
 

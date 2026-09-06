@@ -1,8 +1,25 @@
 import { appDetails, decodeEntities, isAdult, legacyMp4, loadTagMap, searchPage, type SearchHit } from './steam.js'
-import { ADULT_TAGS, countGames, countUnchecked, isVisited, markVisited, saveGame, setAdult, uncheckedGames, type Game } from './db.js'
+import { ADULT_TAGS, countGames, countUnchecked, getVisited, kvGet, kvSet, markVisited, saveGame, setAdult, uncheckedGames, type Game } from './db.js'
 
 const MIN_REVIEWS = 10 // below this the data is noise
 const MAX_TAGS = 6
+
+const DAY = 24 * 60 * 60 * 1000
+// How long before a previously skipped game is worth another look.
+const RETRY_AFTER: Partial<Record<string, number>> = {
+  few_reviews: 14 * DAY, // new releases collect reviews over time
+  error: 1 * DAY,
+}
+
+/** True when this app was already handled and should not be fetched again yet. */
+function alreadyHandled(appid: number): boolean {
+  const v = getVisited(appid)
+  if (!v) return false
+  const retry = RETRY_AFTER[v.status]
+  return retry === undefined || v.visited_at > Date.now() - retry
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function log(...args: unknown[]) {
   console.log(`[crawl ${new Date().toISOString().slice(11, 19)}]`, ...args)
@@ -59,19 +76,14 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
   return true
 }
 
-/** One crawl step: grab a random search page and ingest every new game on it. */
-export async function crawlOnce(): Promise<number> {
-  const tagMap = await loadTagMap()
-  // ~70k games sorted by reviews. Bias toward the deep end so the feed is mostly unknowns.
-  const total = 60_000
-  const start = Math.floor(Math.random() ** 0.6 * total)
-  const { hits } = await searchPage(start)
-  log(`search offset ${start}: ${hits.length} hits`)
+/** Ingest every new, sufficiently reviewed game on a page of search hits. Returns how many were added. */
+async function ingestHits(hits: SearchHit[], tagMap: Map<number, string>): Promise<number> {
   let added = 0
   for (const hit of hits) {
-    if (isVisited(hit.appid)) continue
-    if (hit.reviewCount !== null && hit.reviewCount < MIN_REVIEWS) {
-      markVisited(hit.appid, 'rejected')
+    if (alreadyHandled(hit.appid)) continue
+    // No review tooltip means no reviews at all; the release sweep hits many of those.
+    if ((hit.reviewCount ?? 0) < MIN_REVIEWS) {
+      markVisited(hit.appid, 'few_reviews')
       continue
     }
     try {
@@ -84,6 +96,32 @@ export async function crawlOnce(): Promise<number> {
       markVisited(hit.appid, 'error')
     }
   }
+  return added
+}
+
+/** Discovery step: a random page from the review-sorted catalogue. Returns how many games were added. */
+export async function crawlOnce(): Promise<number> {
+  const tagMap = await loadTagMap()
+  // ~70k games sorted by reviews. Bias toward the deep end so the feed is mostly unknowns.
+  const total = 60_000
+  const start = Math.floor(Math.random() ** 0.6 * total)
+  const { hits } = await searchPage(start)
+  log(`search offset ${start}: ${hits.length} hits`)
+  return ingestHits(hits, tagMap)
+}
+
+const SWEEP_PAGES = 20 // newest 1000 releases
+
+/** Daily: walk the newest releases so games published after the initial crawl still get in. */
+export async function sweepNewReleases(): Promise<number> {
+  const tagMap = await loadTagMap()
+  let added = 0
+  for (let page = 0; page < SWEEP_PAGES; page++) {
+    const { hits } = await searchPage(page * 50, 50, 'Released_DESC')
+    if (hits.length === 0) break
+    added += await ingestHits(hits, tagMap)
+  }
+  log(`new-release sweep: +${added}`)
   return added
 }
 
@@ -104,26 +142,45 @@ async function recheckAdult(batch: number): Promise<void> {
   if (ids.length) log(`content check: ${countUnchecked()} games left to check`)
 }
 
+/**
+ * Runs forever. Discovery slows down as the catalogue is exhausted (a page that
+ * adds nothing doubles the pause, up to 30 minutes) and speeds back up when new
+ * games appear. Once a day the newest releases are swept regardless.
+ */
 export async function crawlForever(opts: { target?: number } = {}) {
   const target = opts.target ?? Infinity
-  while (countGames() < target || countUnchecked() > 0) {
+  let idle = 0
+  for (;;) {
     try {
       await recheckAdult(25)
-      if (countGames() < target) await crawlOnce()
-      else await new Promise((r) => setTimeout(r, 1000))
-      log(`pool size: ${countGames()}`)
+
+      const lastSweep = Number(kvGet('last_new_release_sweep') ?? 0)
+      if (Date.now() - lastSweep > DAY) {
+        await sweepNewReleases()
+        kvSet('last_new_release_sweep', String(Date.now()))
+      }
+
+      if (countGames() < target) {
+        const added = await crawlOnce()
+        if (added === 0) {
+          idle = Math.min(idle ? idle * 2 : 30_000, 30 * 60_000)
+          log(`nothing new on that page; next discovery in ${Math.round(idle / 1000)}s (pool ${countGames()})`)
+        } else {
+          idle = 0
+          log(`pool size: ${countGames()}`)
+        }
+      } else {
+        idle = 60_000
+      }
+      await sleep(Math.max(idle, 1000))
     } catch (err) {
       log(`crawl step failed: ${(err as Error).message}`)
-      await new Promise((r) => setTimeout(r, 30_000))
+      await sleep(30_000)
     }
   }
 }
 
 // Run standalone: `pnpm crawl [targetCount]`
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()!)) {
-  const target = Number(process.argv[2]) || Infinity
-  crawlForever({ target }).then(() => {
-    log(`done, pool size ${countGames()}`)
-    process.exit(0)
-  })
+  crawlForever({ target: Number(process.argv[2]) || Infinity })
 }

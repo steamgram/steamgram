@@ -169,13 +169,15 @@ export function getGames(appids: number[]): Game[] {
 const markVisitedStmt = db.prepare(
   'INSERT OR REPLACE INTO visited (appid, status, visited_at) VALUES (?, ?, ?)',
 )
-export function markVisited(appid: number, status: 'ok' | 'rejected' | 'error') {
+export function markVisited(appid: number, status: VisitStatus) {
   markVisitedStmt.run(appid, status, Date.now())
 }
 
-const isVisitedStmt = db.prepare('SELECT 1 FROM visited WHERE appid = ?')
-export function isVisited(appid: number): boolean {
-  return isVisitedStmt.get(appid) !== undefined
+export type VisitStatus = 'ok' | 'rejected' | 'few_reviews' | 'error'
+
+const getVisitedStmt = db.prepare('SELECT status, visited_at FROM visited WHERE appid = ?')
+export function getVisited(appid: number): { status: VisitStatus; visited_at: number } | undefined {
+  return getVisitedStmt.get(appid) as { status: VisitStatus; visited_at: number } | undefined
 }
 
 export function countGames(): number {

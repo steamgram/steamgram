@@ -8,8 +8,6 @@ services:
       - "127.0.0.1:20090:3001"   # nginx proxies steamgram.app here
     volumes:
       - steamgram-data:/app/apps/api/data
-    environment:
-      CRAWL_TARGET: "20000"
     # Alpine's musl resolver returns EAI_AGAIN through Docker's embedded DNS on this host;
     # public resolvers sidestep the router quirk.
     dns:
