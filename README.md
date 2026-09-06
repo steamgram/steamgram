@@ -35,4 +35,9 @@ pnpm crawl 500    # crawl until the pool holds 500 games
   to ~40 requests/minute and backs off for a minute on 429.
 - Trailers use Steam's legacy progressive MP4 (`movie480.mp4`) and fall back to
   the HLS manifest through hls.js if that 404s.
+- Prices and review scores refresh on view, not on a schedule: when a feed page
+  is served, stale entries (prices > 6h, reviews > 7d) are refreshed first, with a
+  2.5s cap so the client never waits long. Steam traffic therefore scales with
+  games actually seen, not with pool size. Interactive refreshes take priority
+  over the background crawler in the shared rate limiter.
 - Likes live in `localStorage` for now.

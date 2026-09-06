@@ -49,6 +49,8 @@ async function ingest(hit: SearchHit, tagMap: Map<number, string>): Promise<bool
     review_count: hit.reviewCount ?? d.recommendations?.total ?? null,
     metacritic: d.metacritic?.score ?? null,
     fetched_at: Date.now(),
+    price_refreshed_at: Date.now(),
+    reviews_refreshed_at: hit.reviewSummary ? Date.now() : null,
   }
   saveGame(game)
   markVisited(hit.appid, 'ok')

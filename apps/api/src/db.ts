@@ -47,6 +47,11 @@ db.exec(`
   );
 `)
 
+// Additive migrations for existing databases.
+const cols = new Set((db.prepare('PRAGMA table_info(games)').all() as { name: string }[]).map((c) => c.name))
+if (!cols.has('price_refreshed_at')) db.exec('ALTER TABLE games ADD COLUMN price_refreshed_at INTEGER')
+if (!cols.has('reviews_refreshed_at')) db.exec('ALTER TABLE games ADD COLUMN reviews_refreshed_at INTEGER')
+
 export type GameRow = {
   appid: number
   name: string
@@ -72,6 +77,8 @@ export type GameRow = {
   review_count: number | null
   metacritic: number | null
   fetched_at: number
+  price_refreshed_at: number | null
+  reviews_refreshed_at: number | null
 }
 
 export type Game = Omit<GameRow, 'screenshots' | 'genres' | 'tags' | 'developers' | 'platforms' | 'is_free'> & {
@@ -119,6 +126,30 @@ export function saveGame(g: Game) {
     platforms: JSON.stringify(g.platforms),
     is_free: g.is_free ? 1 : 0,
   })
+}
+
+const updatePriceStmt = db.prepare(`
+  UPDATE games SET is_free = ?, price_final = ?, price_initial = ?, discount_percent = ?, price_formatted = ?, price_refreshed_at = ?
+  WHERE appid = ?
+`)
+export function updatePrice(appid: number, p: { is_free: boolean; final: number | null; initial: number | null; discount: number; formatted: string | null }) {
+  updatePriceStmt.run(p.is_free ? 1 : 0, p.final, p.initial, p.discount, p.formatted, Date.now(), appid)
+}
+
+const updateReviewsStmt = db.prepare(`
+  UPDATE games SET review_summary = ?, review_percent = ?, review_count = ?, reviews_refreshed_at = ? WHERE appid = ?
+`)
+export function updateReviews(appid: number, r: { summary: string | null; percent: number | null; count: number | null }) {
+  updateReviewsStmt.run(r.summary, r.percent, r.count, Date.now(), appid)
+}
+
+export function getGames(appids: number[]): Game[] {
+  if (appids.length === 0) return []
+  const rows = db
+    .prepare(`SELECT * FROM games WHERE appid IN (${appids.map(() => '?').join(',')})`)
+    .all(...appids) as GameRow[]
+  const byId = new Map(rows.map((r) => [r.appid, rowToGame(r)]))
+  return appids.map((id) => byId.get(id)).filter((g): g is Game => !!g)
 }
 
 const markVisitedStmt = db.prepare(

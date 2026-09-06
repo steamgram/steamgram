@@ -3,20 +3,23 @@ import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import { countGames, getGame, randomGames } from './db.js'
 import { crawlForever } from './crawl.js'
+import { ensureFresh } from './refresh.js'
 
 const app = new Hono()
 app.use('/api/*', cors())
 
 app.get('/api/health', (c) => c.json({ ok: true, games: countGames() }))
 
-app.get('/api/feed', (c) => {
+app.get('/api/feed', async (c) => {
   const limit = Math.min(Number(c.req.query('limit')) || 8, 30)
   const exclude = (c.req.query('exclude') ?? '')
     .split(',')
     .map(Number)
     .filter((n) => Number.isInteger(n) && n > 0)
     .slice(-500)
-  return c.json({ games: randomGames(limit, exclude), pool: countGames() })
+  // The client asks for a page a few cards early, so a short wait here is invisible.
+  const games = await ensureFresh(randomGames(limit, exclude), 2500)
+  return c.json({ games, pool: countGames() })
 })
 
 app.get('/api/games/:id', (c) => {

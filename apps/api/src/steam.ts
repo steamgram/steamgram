@@ -9,11 +9,39 @@ const MIN_GAP_MS = 1500 // ~40 req/min, comfortably under Steam's ~200 per 5 min
 let lastCall = 0
 let backoffUntil = 0
 
-async function throttledFetch(url: string): Promise<Response> {
+// Single global request slot with priorities: interactive refreshes (feed
+// pages) go before the background crawler. Reservation is synchronous, so
+// concurrent callers cannot all fire at once.
+type Waiter = { prio: number; resolve: () => void }
+const waiters: Waiter[] = []
+let timer: NodeJS.Timeout | null = null
+
+function pump() {
+  if (timer || waiters.length === 0) return
   const now = Date.now()
-  const wait = Math.max(lastCall + MIN_GAP_MS - now, backoffUntil - now, 0)
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait))
-  lastCall = Date.now()
+  const delay = Math.max(lastCall + MIN_GAP_MS - now, backoffUntil - now, 0)
+  timer = setTimeout(() => {
+    timer = null
+    waiters.sort((a, b) => b.prio - a.prio)
+    const w = waiters.shift()!
+    lastCall = Date.now()
+    w.resolve()
+    pump()
+  }, delay)
+}
+
+function acquireSlot(prio: number): Promise<void> {
+  return new Promise((resolve) => {
+    waiters.push({ prio, resolve })
+    pump()
+  })
+}
+
+export const PRIO_BACKGROUND = 0
+export const PRIO_INTERACTIVE = 10
+
+async function throttledFetch(url: string, prio = PRIO_BACKGROUND): Promise<Response> {
+  await acquireSlot(prio)
   const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en' } })
   if (res.status === 429 || res.status === 403) {
     backoffUntil = Date.now() + 60_000
@@ -142,4 +170,39 @@ export async function appDetails(appid: number): Promise<AppDetails | null> {
 /** Steam still serves legacy progressive MP4s next to the HLS manifests. */
 export function legacyMp4(movieId: number, quality: '480' | 'max' = '480'): string {
   return `https://video.akamai.steamstatic.com/store_trailers/${movieId}/movie${quality === 'max' ? '_max' : '480'}.mp4`
+}
+
+// ---------- lightweight refresh endpoints ----------
+
+export type PriceInfo = { is_free: boolean; final: number | null; initial: number | null; discount: number; formatted: string | null }
+
+/** One request refreshes prices for many apps (Steam allows multi-id only with the price filter). */
+export async function fetchPrices(appids: number[]): Promise<Map<number, PriceInfo>> {
+  const out = new Map<number, PriceInfo>()
+  if (appids.length === 0) return out
+  const url = `https://store.steampowered.com/api/appdetails?appids=${appids.join(',')}&filters=price_overview&cc=us`
+  const res = await throttledFetch(url, PRIO_INTERACTIVE)
+  if (!res.ok) throw new Error(`prices ${res.status}`)
+  const json = (await res.json()) as Record<string, { success: boolean; data?: { price_overview?: AppDetails['price_overview'] } | [] }>
+  for (const id of appids) {
+    const entry = json[String(id)]
+    if (!entry?.success) continue
+    const po = Array.isArray(entry.data) ? undefined : entry.data?.price_overview
+    out.set(id, po
+      ? { is_free: false, final: po.final, initial: po.initial, discount: po.discount_percent, formatted: po.final_formatted }
+      : { is_free: true, final: 0, initial: 0, discount: 0, formatted: 'Free' })
+  }
+  return out
+}
+
+export type ReviewInfo = { summary: string | null; percent: number | null; count: number | null }
+
+export async function fetchReviewSummary(appid: number): Promise<ReviewInfo> {
+  const url = `https://store.steampowered.com/appreviews/${appid}?json=1&language=all&purchase_type=all&num_per_page=0`
+  const res = await throttledFetch(url, PRIO_INTERACTIVE)
+  if (!res.ok) throw new Error(`reviews ${res.status}`)
+  const json = (await res.json()) as { success: number; query_summary?: { review_score_desc: string; total_positive: number; total_reviews: number } }
+  const q = json.query_summary
+  if (!q || q.total_reviews === 0) return { summary: null, percent: null, count: 0 }
+  return { summary: q.review_score_desc, percent: Math.round((q.total_positive / q.total_reviews) * 100), count: q.total_reviews }
 }
