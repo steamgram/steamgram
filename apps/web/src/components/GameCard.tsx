@@ -77,6 +77,13 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
               </span>
             )}
             {year(game.release_date) && <span className="text-zinc-500">· {year(game.release_date)}</span>}
+            {game.price_formatted && (
+              <span className="text-zinc-500">
+                · {game.is_free ? 'Free' : game.price_formatted}
+                {game.discount_percent ? <span className="text-emerald-300"> (−{game.discount_percent}%)</span> : null}
+              </span>
+            )}
+            {game.metacritic ? <span className="text-zinc-500">· Metacritic {game.metacritic}</span> : null}
           </div>
 
           <h2 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow sm:text-4xl">{game.name}</h2>
@@ -84,7 +91,7 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
             <p className="mt-1 text-sm text-zinc-400">by {game.developers.slice(0, 2).join(', ')}</p>
           )}
 
-          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-200 sm:line-clamp-3 sm:text-base">
+          <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-zinc-200 sm:line-clamp-5 sm:text-base">
             {game.short_description}
           </p>
 
@@ -96,20 +103,6 @@ export function GameCard({ game, active, nearby, muted, liked, onToggleMute, onT
             ))}
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <a
-              href={storeUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-steam px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
-            >
-              {game.is_free ? 'Play for free' : game.price_formatted ? `Get it · ${game.price_formatted}` : 'View on Steam'}
-            </a>
-            {game.discount_percent ? (
-              <span className="rounded bg-emerald-500/20 px-2 py-1 text-xs font-bold text-emerald-300">−{game.discount_percent}%</span>
-            ) : null}
-            {game.metacritic ? <span className="text-xs text-zinc-400">Metacritic {game.metacritic}</span> : null}
-          </div>
         </div>
       </div>
     </section>
