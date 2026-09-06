@@ -9,6 +9,7 @@ mkdirSync(dataDir, { recursive: true })
 
 export const db = new DatabaseSync(path.join(dataDir, 'steamgram.sqlite'))
 db.exec('PRAGMA journal_mode = WAL')
+db.exec('PRAGMA busy_timeout = 5000') // wait instead of throwing SQLITE_BUSY when a writer overlaps
 db.exec(`
   CREATE TABLE IF NOT EXISTS games (
     appid INTEGER PRIMARY KEY,
