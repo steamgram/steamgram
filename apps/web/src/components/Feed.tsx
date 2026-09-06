@@ -6,6 +6,10 @@ import type { Game } from '../types'
 import { GameCard } from './GameCard'
 import { Logo } from './Logo'
 import { About } from './About'
+import { SavedSheet } from './SavedSheet'
+import { FilterSheet } from './FilterSheet'
+import { useSaved } from '../hooks/useSaved'
+import { useTagFilter } from '../hooks/useTagFilter'
 
 export function Feed() {
   // A shared link (?game=APPID) opens the feed on that game.
@@ -14,17 +18,20 @@ export function Feed() {
     return Number.isInteger(id) && id > 0 ? id : null
   })
 
+  const { tags, toggle: toggleTag, clear: clearTags } = useTagFilter()
+  const { saved, toggle: toggleSave, remove: removeSaved, isSaved } = useSaved()
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending, error } = useInfiniteQuery({
-    queryKey: ['feed', linkedAppid],
+    queryKey: ['feed', linkedAppid, tags],
     initialPageParam: [] as number[],
     queryFn: async ({ pageParam }) => {
       if (pageParam.length === 0 && linkedAppid) {
-        const [linked, page] = await Promise.all([fetchGame(linkedAppid), fetchFeed([linkedAppid])])
+        const [linked, page] = await Promise.all([fetchGame(linkedAppid), fetchFeed([linkedAppid], tags)])
         return linked ? { ...page, games: [linked, ...page.games] } : page
       }
-      return fetchFeed(pageParam)
+      return fetchFeed(pageParam, tags)
     },
-    getNextPageParam: (last, pages) => (last.games.length === 0 ? undefined : pages.flatMap((p) => p.games.map((g) => g.appid))),
+    getNextPageParam: (last, pages) => (last.games.length < 8 ? undefined : pages.flatMap((p) => p.games.map((g) => g.appid))),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   })
@@ -34,11 +41,12 @@ export function Feed() {
     return (data?.pages ?? []).flatMap((p) => p.games).filter((g) => (seen.has(g.appid) ? false : (seen.add(g.appid), true)))
   }, [data])
   const pool = data?.pages[0]?.pool ?? 0
+  const matching = data?.pages[0]?.matching ?? null
 
   const [active, setActive] = useState(0)
   const [muted, setMuted] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
-  const [aboutOpen, setAboutOpen] = useState(false)
+  const [sheet, setSheet] = useState<'about' | 'saved' | 'filter' | null>(null)
   const [showInfo, setShowInfo] = useState(() => {
     try {
       return localStorage.getItem('steamgram:showInfo') !== '0'
@@ -80,6 +88,12 @@ export function Feed() {
     return () => clearTimeout(t)
   }, [toast])
 
+  // A new filter means a new feed: back to the top.
+  useEffect(() => {
+    setActive(0)
+    containerRef.current?.scrollTo({ top: 0 })
+  }, [tags])
+
   // Track which card is on screen.
   useEffect(() => {
     const root = containerRef.current
@@ -119,16 +133,17 @@ export function Feed() {
   // Keyboard: j/k, arrows, space; m to mute; s to share.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || aboutOpen) return
+      if (e.target instanceof HTMLInputElement || sheet) return
       if (['ArrowDown', 'j', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); scrollTo(Math.min(active + 1, games.length - 1)) }
       else if (['ArrowUp', 'k', 'PageUp'].includes(e.key)) { e.preventDefault(); scrollTo(Math.max(active - 1, 0)) }
       else if (e.key === 'm') setMuted((m) => !m)
       else if (e.key === 'i') toggleInfo()
+      else if (e.key === 'b' && games[active]) toggleSave(games[active])
       else if (e.key === 's' && games[active]) share(games[active])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, games, scrollTo, share, aboutOpen, toggleInfo])
+  }, [active, games, scrollTo, share, sheet, toggleInfo, toggleSave])
 
   if (isPending) return <Splash text="Warming up the trailer reel…" />
   if (error) return <Splash text={`Could not reach the API: ${(error as Error).message}. Is \`pnpm dev:api\` running?`} />
@@ -142,16 +157,43 @@ export function Feed() {
           aria-label="About SteamGram"
           onClick={() => {
             track('open_about')
-            setAboutOpen(true)
+            setSheet('about')
           }}
           className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/35 py-1 pl-2 pr-3 backdrop-blur-sm transition hover:bg-black/50"
         >
           <Logo className="h-6 w-auto" />
           <span className="text-lg font-black tracking-tight">Steam<span className="text-steam">Gram</span></span>
         </button>
-        <span className="rounded-full bg-black/35 px-3 py-1 text-xs text-zinc-300 backdrop-blur-sm">
-          {pool.toLocaleString()} games
-        </span>
+        <div className="pointer-events-auto flex items-center gap-1.5">
+          <HeaderButton
+            label="Filter by tags"
+            active={tags.length > 0}
+            badge={tags.length || undefined}
+            onClick={() => {
+              track('open_filter')
+              setSheet('filter')
+            }}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 5h18l-7 8v5l-4 2v-7z" />
+            </svg>
+          </HeaderButton>
+          <HeaderButton
+            label="Saved games"
+            badge={saved.length || undefined}
+            onClick={() => {
+              track('open_saved', { count: saved.length })
+              setSheet('saved')
+            }}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+            </svg>
+          </HeaderButton>
+          <span className="rounded-full bg-black/35 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur-sm">
+            {(matching ?? pool).toLocaleString()} games
+          </span>
+        </div>
       </header>
 
       <div ref={containerRef} className="feed h-dvh snap-y snap-mandatory overflow-y-scroll">
@@ -169,13 +211,32 @@ export function Feed() {
               onShare={() => share(g)}
               showInfo={showInfo}
               onToggleInfo={toggleInfo}
+              saved={isSaved(g.appid)}
+              onToggleSave={() => toggleSave(g)}
             />
           </div>
         ))}
         {isFetchingNextPage && <div className="flex h-24 items-center justify-center text-sm text-zinc-500">Loading more…</div>}
+        {!hasNextPage && games.length > 0 && (
+          <div className="flex h-dvh snap-start flex-col items-center justify-center gap-4 bg-[#0b0f17] p-8 text-center text-zinc-300">
+            <Logo className="h-16 w-auto" />
+            <p className="max-w-xs text-sm">
+              {tags.length ? `That is every game tagged ${tags.join(', ')}. Loosen the filter for more.` : 'You reached the end of the reel. Come back later, the crawler never sleeps.'}
+            </p>
+            {tags.length > 0 && (
+              <button type="button" onClick={clearTags} className="rounded-full bg-steam px-4 py-2 text-sm font-semibold text-black">
+                Clear filter
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {aboutOpen && <About pool={pool} onClose={() => setAboutOpen(false)} />}
+      {sheet === 'about' && <About pool={pool} onClose={() => setSheet(null)} />}
+      {sheet === 'saved' && <SavedSheet saved={saved} onRemove={removeSaved} onClose={() => setSheet(null)} />}
+      {sheet === 'filter' && (
+        <FilterSheet selected={tags} matching={matching} onToggle={toggleTag} onClear={clearTags} onClose={() => setSheet(null)} />
+      )}
 
       {toast && (
         <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center">
@@ -183,6 +244,38 @@ export function Feed() {
         </div>
       )}
     </div>
+  )
+}
+
+function HeaderButton({
+  children,
+  label,
+  badge,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode
+  label: string
+  badge?: number
+  active?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={`relative flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition ${
+        active ? 'bg-steam text-black' : 'bg-black/35 text-white hover:bg-black/50'
+      }`}
+    >
+      {children}
+      {badge ? (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black">
+          {badge}
+        </span>
+      ) : null}
+    </button>
   )
 }
 

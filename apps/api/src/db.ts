@@ -180,9 +180,29 @@ export function getVisited(appid: number): { status: VisitStatus; visited_at: nu
   return getVisitedStmt.get(appid) as { status: VisitStatus; visited_at: number } | undefined
 }
 
-export function countGames(): number {
-  const r = db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NOT 1').get() as { n: number }
+/** SQL fragment + params matching games that carry at least one of `tags`. */
+function tagClause(tags: string[]): { sql: string; params: string[] } {
+  if (tags.length === 0) return { sql: '', params: [] }
+  return {
+    sql: ` AND EXISTS (SELECT 1 FROM json_each(games.tags) WHERE value IN (${tags.map(() => '?').join(',')}))`,
+    params: tags,
+  }
+}
+
+export function countGames(tags: string[] = []): number {
+  const t = tagClause(tags)
+  const r = db.prepare(`SELECT COUNT(*) AS n FROM games WHERE adult IS NOT 1${t.sql}`).get(...t.params) as { n: number }
   return r.n
+}
+
+/** Most common tags across the served pool, for the filter UI. */
+export function tagCounts(limit = 80): { tag: string; n: number }[] {
+  return db
+    .prepare(
+      `SELECT value AS tag, COUNT(*) AS n FROM games, json_each(games.tags)
+       WHERE adult IS NOT 1 GROUP BY value ORDER BY n DESC LIMIT ?`,
+    )
+    .all(limit) as { tag: string; n: number }[]
 }
 
 export function setAdult(appid: number, adult: boolean) {
@@ -198,12 +218,13 @@ export function countUnchecked(): number {
   return (db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NULL').get() as { n: number }).n
 }
 
-export function randomGames(limit: number, exclude: number[]): Game[] {
+export function randomGames(limit: number, exclude: number[], tags: string[] = []): Game[] {
   const placeholders = exclude.map(() => '?').join(',')
-  const where = `WHERE adult IS NOT 1${exclude.length ? ` AND appid NOT IN (${placeholders})` : ''}`
+  const t = tagClause(tags)
+  const where = `WHERE adult IS NOT 1${exclude.length ? ` AND appid NOT IN (${placeholders})` : ''}${t.sql}`
   const rows = db
     .prepare(`SELECT * FROM games ${where} ORDER BY RANDOM() LIMIT ?`)
-    .all(...exclude, limit) as GameRow[]
+    .all(...exclude, ...t.params, limit) as GameRow[]
   return rows.map(rowToGame)
 }
 

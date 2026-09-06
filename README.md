@@ -42,7 +42,7 @@ served. Games that were too new to have reviews are retried after two weeks.
 
 ## Keys
 
-`j` / `↓` / space next · `k` / `↑` previous · `←` `→` media · `m` mute · `s` share · `i` hide info · tap the video to pause
+`j` / `↓` / space next · `k` / `↑` previous · `←` `→` media · `m` mute · `s` share · `b` save · `i` hide info · tap the video to pause
 
 ## Notes
 

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { Sheet } from "./Sheet";
 
 type Props = { pool: number; onClose: () => void };
 
@@ -7,55 +7,10 @@ const REPO = "https://github.com/steamgram/steamgram";
 const AUTHOR = "https://github.com/DanielLavrushin";
 
 export function About({ pool, onClose }: Props) {
-  // Play the exit animation before unmounting.
-  const [closing, setClosing] = useState(false);
-  const close = useCallback(() => {
-    setClosing(true);
-    setTimeout(onClose, 220);
-  }, [onClose]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [close]);
-
   return (
-    <div
-      className={`absolute inset-0 z-30 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center ${closing ? "anim-fade-out" : "anim-fade-in"}`}
-      onClick={close}
-      role="dialog"
-      aria-modal="true"
-      aria-label="About SteamGram"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`feed max-h-[90dvh] w-full max-w-md overflow-y-auto safe-bottom rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
-      >
-        <div className="flex items-start justify-between">
-          <Logo className="h-14 w-auto" />
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={close}
-            className="-mr-2 -mt-2 flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
-
-        <h2 className="mt-4 text-2xl font-black tracking-tight text-white">
+    <Sheet label="About SteamGram" onClose={onClose}>
+      <Logo className="h-14 w-auto" />
+      <h2 className="mt-4 text-2xl font-black tracking-tight text-white">
           Steam<span className="text-steam">Gram</span>
         </h2>
         <p className="mt-1 text-sm text-zinc-400">Doomscroll Steam.</p>
@@ -84,7 +39,7 @@ export function About({ pool, onClose }: Props) {
             <kbd className="rounded bg-white/10 px-1">→</kbd> media,{" "}
             <kbd className="rounded bg-white/10 px-1">M</kbd> mute, <kbd className="rounded bg-white/10 px-1">I</kbd> info,{" "}
             {" "}
-            <kbd className="rounded bg-white/10 px-1">S</kbd> share
+            <kbd className="rounded bg-white/10 px-1">S</kbd> share, <kbd className="rounded bg-white/10 px-1">B</kbd> save
           </dd>
           <dt className="font-medium text-zinc-300">Made by</dt>
           <dd>
@@ -118,7 +73,6 @@ export function About({ pool, onClose }: Props) {
           Trailers, screenshots and descriptions belong to their developers and
           publishers and are loaded directly from Steam.
         </p>
-      </div>
-    </div>
+    </Sheet>
   );
 }

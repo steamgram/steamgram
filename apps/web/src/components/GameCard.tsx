@@ -12,6 +12,8 @@ type Props = {
   onShare: () => void
   showInfo: boolean
   onToggleInfo: () => void
+  saved: boolean
+  onToggleSave: () => void
 }
 
 function reviewColor(pct: number | null) {
@@ -26,7 +28,7 @@ function year(date: string | null) {
   return m ? m[0] : null
 }
 
-export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo }: Props) {
+export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo, saved, onToggleSave }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
 
   return (
@@ -38,6 +40,11 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
 
       {/* right action rail */}
       <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 sm:right-5">
+        <RailButton label={saved ? 'Remove from saved' : 'Save'} onClick={onToggleSave} active={saved}>
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+            <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+          </svg>
+        </RailButton>
         <RailButton label="Share" onClick={onShare}>
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
@@ -132,13 +139,15 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
   )
 }
 
-function RailButton({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
+function RailButton({ children, label, onClick, active }: { children: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
+      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur transition ${
+        active ? 'bg-steam text-black' : 'bg-white/10 text-white hover:bg-white/20'
+      }`}
     >
       {children}
     </button>

@@ -24,4 +24,5 @@ export type Game = {
   metacritic: number | null
 }
 
-export type FeedPage = { games: Game[]; pool: number }
+export type FeedPage = { games: Game[]; pool: number; matching: number | null }
+export type TagCount = { tag: string; n: number }
