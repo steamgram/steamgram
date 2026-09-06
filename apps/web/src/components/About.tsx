@@ -68,10 +68,10 @@ export function About({ pool, onClose }: Props) {
             {pool.toLocaleString()} in the reel right now and the crawler keeps adding more.
           </p>
           <p>
-            Swipe up for the next game, sideways for screenshots, tap the
-            speaker for sound. If something looks good, the Steam button takes
-            you straight to the store page. Nothing to sign up for, nothing to
-            buy here.
+            It is made for that half hour before sleep when you promised yourself
+            just one more scroll. Instead of someone else's dinner, you get a
+            game you did not know existed. Whether that counts as doomscrolling
+            or research is between you and your wishlist.
           </p>
         </div>
 
