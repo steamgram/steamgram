@@ -93,7 +93,7 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
           rel="noreferrer"
           aria-label="Open on Steam"
           onClick={() => track('open_steam', { appid: game.appid, game: game.name })}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-steam/80"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white shadow-md shadow-black/30 ring-1 ring-white/15 backdrop-blur transition hover:bg-steam/80 [&>svg]:drop-shadow"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
             <path d="M12 2a10 10 0 0 0-9.97 9.2l5.36 2.22a2.83 2.83 0 0 1 1.6-.5h.16l2.38-3.46v-.05a3.77 3.77 0 1 1 3.77 3.77h-.09l-3.4 2.43v.13a2.83 2.83 0 0 1-5.62.44L2.4 14.6A10 10 0 1 0 12 2zm-3.7 15.2-1.23-.51a2.13 2.13 0 0 0 3.94-.1 2.12 2.12 0 0 0-1.15-2.77l-1.27-.53a1.5 1.5 0 0 1 1.96-.03l1.29.53a2.1 2.1 0 0 1-3.54 3.41zm7.03-6.7a2.51 2.51 0 1 1 0-5.02 2.51 2.51 0 0 1 0 5.02zm0-4.4a1.89 1.89 0 1 0 0 3.78 1.89 1.89 0 0 0 0-3.78z" />
@@ -171,8 +171,8 @@ function RailButton({ children, label, onClick, active }: { children: React.Reac
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur transition ${
-        active ? 'bg-steam text-black' : 'bg-white/10 text-white hover:bg-white/20'
+      className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md shadow-black/30 ring-1 backdrop-blur transition ${
+        active ? 'bg-steam text-black ring-white/30' : 'bg-black/45 text-white ring-white/15 hover:bg-black/60 [&>svg]:drop-shadow'
       }`}
     >
       {children}

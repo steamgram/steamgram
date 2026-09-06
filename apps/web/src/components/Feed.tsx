@@ -159,7 +159,7 @@ export function Feed() {
             track('open_about')
             setSheet('about')
           }}
-          className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/35 py-1 pl-2 pr-3 backdrop-blur-sm transition hover:bg-black/50"
+          className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/45 py-1 pl-2 pr-3 ring-1 ring-white/15 backdrop-blur-sm transition hover:bg-black/60"
         >
           <Logo className="h-6 w-auto" />
           <span className="text-lg font-black tracking-tight">Steam<span className="text-steam">Gram</span></span>
@@ -190,7 +190,7 @@ export function Feed() {
               <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
             </svg>
           </HeaderButton>
-          <span className="rounded-full bg-black/35 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur-sm">
+          <span className="rounded-full bg-black/45 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/15 backdrop-blur-sm">
             {(matching ?? pool).toLocaleString()} games
           </span>
         </div>
@@ -265,8 +265,8 @@ function HeaderButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`relative flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition ${
-        active ? 'bg-steam text-black' : 'bg-black/35 text-white hover:bg-black/50'
+      className={`relative flex h-8 w-8 items-center justify-center rounded-full ring-1 backdrop-blur-sm transition ${
+        active ? 'bg-steam text-black ring-white/30' : 'bg-black/45 text-white ring-white/15 hover:bg-black/60'
       }`}
     >
       {children}
