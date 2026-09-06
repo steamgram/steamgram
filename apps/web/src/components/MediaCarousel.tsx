@@ -88,7 +88,7 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
       {items.length > 1 && (
         <>
           {/* story-style progress segments */}
-          <div className="pointer-events-none absolute inset-x-4 top-12 z-10 flex gap-1">
+          <div className="pointer-events-none absolute inset-x-3 top-2 z-10 flex gap-1">
             {items.map((_, i) => (
               <span
                 key={i}
