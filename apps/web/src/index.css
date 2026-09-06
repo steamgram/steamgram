@@ -64,3 +64,27 @@ html, body, #root {
 .safe-top    { padding-top:    calc(env(safe-area-inset-top, 0px) + 1.25rem); }
 .safe-seg    { top:            calc(env(safe-area-inset-top, 0px) + 0.5rem); }
 .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem); }
+
+/* Portrait "browse mode": with the info panel visible, the media box ends where
+   the text begins and fades into the dark ground over its last stretch, so the
+   trailer and the text read as one surface. Hiding the info expands the media
+   to the full screen. */
+@media (orientation: portrait) {
+  .card.browse .media-box {
+    bottom: calc(var(--text-h, 0px) - 3.5rem);
+  }
+  .card.browse .media-box::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 7rem;
+    background: linear-gradient(to top, #0b0f17 0%, rgba(11, 15, 23, 0.7) 45%, transparent 100%);
+    pointer-events: none;
+  }
+  .card.browse .info-panel {
+    background: none;
+    padding-top: 0;
+  }
+}

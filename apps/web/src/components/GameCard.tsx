@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { track } from '../analytics'
 import type { Game } from '../types'
 import { ExpandableText } from './ExpandableText'
@@ -31,9 +32,33 @@ function year(date: string | null) {
 export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo, saved, onToggleSave }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
 
+  // In portrait "browse mode" the media box ends just above the text, so the
+  // height of the text block (measured, it varies per game) drives the media height.
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [textH, setTextH] = useState(0)
+  useEffect(() => {
+    const panel = panelRef.current
+    const content = panel?.querySelector<HTMLElement>('.info-content')
+    if (!panel || !content || !nearby) return
+    const measure = () => {
+      const section = panel.parentElement!.getBoundingClientRect()
+      setTextH(Math.round(section.bottom - content.getBoundingClientRect().top))
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(panel)
+    ro.observe(content)
+    measure()
+    return () => ro.disconnect()
+  }, [nearby])
+
   return (
-    <section className="relative h-dvh w-full snap-start snap-always overflow-hidden bg-black">
-      <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
+    <section
+      className={`card relative h-dvh w-full snap-start snap-always overflow-hidden bg-[#0b0f17] ${showInfo ? 'browse' : ''}`}
+      style={{ '--text-h': showInfo ? `${textH}px` : '0px' } as CSSProperties}
+    >
+      <div className="media-box absolute inset-0 overflow-hidden transition-[bottom] duration-300 ease-out">
+        <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
+      </div>
 
       {/* thin strip so the header never sits on pure white */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
@@ -89,6 +114,7 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
 
       {/* bottom info */}
       <div
+        ref={panelRef}
         aria-hidden={!showInfo}
         className={`info-panel safe-bottom pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pt-20 transition-all duration-300 ease-out sm:px-8 sm:pt-24 ${
           showInfo ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 [&_*]:pointer-events-none'
