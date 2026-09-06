@@ -1,5 +1,5 @@
 /* SteamGram service worker: app shell only. Never caches /api or Steam media. */
-const VERSION = 'v1'
+const VERSION = 'v2'
 const SHELL = `steamgram-shell-${VERSION}`
 
 self.addEventListener('install', (e) => {
@@ -36,7 +36,11 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(request)
       .then((res) => {
-        if (res.ok) caches.open(SHELL).then((c) => c.put(request, res.clone()))
+        // Clone before returning: once the page starts reading the body it can no longer be cloned.
+        if (res.ok) {
+          const copy = res.clone()
+          caches.open(SHELL).then((c) => c.put(request, copy)).catch(() => {})
+        }
         return res
       })
       .catch(async () => (await caches.match(request)) ?? (request.mode === 'navigate' ? caches.match('/') : Response.error())),
