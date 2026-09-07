@@ -61,25 +61,7 @@ served. Games that were too new to have reviews are retried after two weeks.
   link otherwise; that link opens the feed on that game.
 - The web app is an installable PWA with an app-shell service worker; the API
   and Steam media are never cached. Installed on Android it runs fullscreen,
-  with the system bars hidden. Google Analytics loads only in production
-  builds, from `VITE_GA_ID` in `apps/web/.env.production`.
-
-## Deploy
-
-Production runs as a single Docker container (API + static web bundle) behind
-nginx. See [`Dockerfile`](Dockerfile), [`docker-compose.yml`](docker-compose.yml)
-and [`deploy/`](deploy/).
-
-```sh
-docker compose up -d --build     # listens on 127.0.0.1:20090
-sudo cp deploy/nginx.steamgram.app.conf /etc/nginx/sites-available/steamgram.app
-sudo ln -s /etc/nginx/sites-available/steamgram.app /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d steamgram.app -d www.steamgram.app
-```
-
-To ship a new version: push to `main`, then run `deploy/deploy.sh` on the server.
-The SQLite pool lives in the `steamgram-data` volume and survives rebuilds.
+  with the system bars hidden.
 
 ## License
 
