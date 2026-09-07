@@ -66,6 +66,18 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
 
   useImperativeHandle(handle, () => ({ step: (delta) => go(index + delta) }), [go, index])
 
+  // Trailer progress goes straight to the DOM: a few updates a second while it
+  // plays, with no re-render of the strip for each one.
+  const fill = useRef<HTMLSpanElement>(null)
+  const lastPlayed = useRef(0)
+  const onProgress = useCallback((played: number) => {
+    const el = fill.current
+    if (!el) return
+    el.style.transition = played < lastPlayed.current ? 'none' : '' // a loop restart snaps back rather than rewinding
+    el.style.transform = `scaleX(${played})`
+    lastPlayed.current = played
+  }, [])
+
   return (
     <>
       <div
@@ -77,7 +89,7 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
         {items.map((it, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-start snap-always overflow-hidden">
             {it.kind === 'video' ? (
-              <TrailerVideo game={game} active={active && index === i} nearby={nearby} muted={muted} />
+              <TrailerVideo game={game} active={active && index === i} nearby={nearby} muted={muted} onProgress={onProgress} />
             ) : nearby && Math.abs(i - index) <= 1 ? (
               <Screenshot src={it.src} />
             ) : null}
@@ -85,14 +97,24 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
         ))}
       </div>
 
-      {/* story-style progress segments */}
-      {items.length > 1 && (
+      {/* story-style progress segments; the trailer's fills up as it plays */}
+      {(items.length > 1 || items[0].kind === 'video') && (
         <div className="safe-seg pointer-events-none absolute inset-x-3 z-10 flex gap-1">
-          {items.map((_, i) => (
+          {items.map((it, i) => (
             <span
               key={i}
-              className={`h-0.5 flex-1 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/30'}`}
-            />
+              className={`h-0.5 flex-1 overflow-hidden rounded-full transition-colors ${
+                i !== index ? 'bg-white/30' : it.kind === 'video' ? 'bg-white/50' : 'bg-white'
+              }`}
+            >
+              {it.kind === 'video' && (
+                <span
+                  ref={fill}
+                  className="block h-full origin-left rounded-full bg-white transition-transform duration-[250ms] ease-linear"
+                  style={{ transform: 'scaleX(0)' }}
+                />
+              )}
+            </span>
           ))}
         </div>
       )}

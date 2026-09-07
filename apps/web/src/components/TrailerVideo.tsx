@@ -7,13 +7,14 @@ type Props = {
   active: boolean;
   nearby: boolean; // within one card of the active one: keep the element mounted / preloaded
   muted: boolean;
+  onProgress?: (played: number) => void; // fraction of the trailer played, 0 to 1
 };
 
 /**
  * Plays Steam's legacy progressive MP4 when available and falls back to the
  * HLS manifest via hls.js if the MP4 404s. Only the active card plays.
  */
-export function TrailerVideo({ game, active, nearby, muted }: Props) {
+export function TrailerVideo({ game, active, nearby, muted, onProgress }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const [useHls, setUseHls] = useState(!game.trailer_mp4);
   const [failed, setFailed] = useState(false);
@@ -69,6 +70,15 @@ export function TrailerVideo({ game, active, nearby, muted }: Props) {
     if (!active) setUserPaused(false);
   }, [active]);
 
+  // Progress for the strip's trailer segment: `timeupdate` ticks a few times a
+  // second while playing, and `loadstart` puts a fresh source back to zero.
+  const reportProgress = () => {
+    const el = ref.current;
+    if (!el || !onProgress) return;
+    const d = el.duration;
+    onProgress(Number.isFinite(d) && d > 0 ? el.currentTime / d : 0);
+  };
+
   if (failed) return <ScreenshotFallback game={game} active={active} />;
   if (!nearby) {
     return (
@@ -110,6 +120,8 @@ export function TrailerVideo({ game, active, nearby, muted }: Props) {
         loop
         playsInline
         preload={active ? "auto" : "metadata"}
+        onTimeUpdate={reportProgress}
+        onLoadStart={reportProgress}
         onError={() => {
           if (!useHls && game.trailer_hls) setUseHls(true);
           else setFailed(true);
