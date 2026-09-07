@@ -70,7 +70,9 @@ served. Games that were too new to have reviews are retried after two weeks.
   never cached. Apply it by hand with `nginx -t && systemctl reload nginx`;
   `deploy/deploy.sh` only syncs the checkout to `origin/main` and rebuilds the
   container. The file header explains the SNI router and certificate setup on
-  the production host.
+  the production host. `deploy/nginx.ru.steamgram.app.conf` is the same vhost
+  for the home mirror at ru.steamgram.app, kept for networks that block the
+  production host's cloud provider.
 - Share uses the native share sheet where available and copies a `?game=APPID`
   link otherwise; that link opens the feed on that game.
 - The web app is an installable PWA with an app-shell service worker; the API
