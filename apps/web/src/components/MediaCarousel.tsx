@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { track } from '../analytics'
 import { hasTrailer, type Game } from '../types'
-import { TrailerVideo } from './TrailerVideo'
+import { TrailerVideo, type SeekDir, type TrailerHandle } from './TrailerVideo'
 
 type Item = { kind: 'video' } | { kind: 'image'; src: string }
 
-/** What the feed gets through `ref`: move the strip by a number of slides. */
-export type MediaHandle = { step: (delta: number) => void }
+/** What the feed gets through `ref`: move the strip by a number of slides, or hold-seek the trailer. */
+export type MediaHandle = { step: (delta: number) => void; hold: (dir: SeekDir) => void; release: () => void }
 
 type Props = {
   game: Game
@@ -64,7 +64,18 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
     }
   }, [active, index, onSlideChange])
 
-  useImperativeHandle(handle, () => ({ step: (delta) => go(index + delta) }), [go, index])
+  const trailer = useRef<TrailerHandle>(null)
+  useImperativeHandle(
+    handle,
+    () => ({
+      step: (delta) => go(index + delta),
+      hold: (dir) => {
+        if (index === 0) trailer.current?.hold(dir) // a screenshot has nothing to seek
+      },
+      release: () => trailer.current?.release(),
+    }),
+    [go, index],
+  )
 
   // Trailer progress goes straight to the DOM: a few updates a second while it
   // plays, with no re-render of the strip for each one.
@@ -89,7 +100,7 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
         {items.map((it, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-start snap-always overflow-hidden">
             {it.kind === 'video' ? (
-              <TrailerVideo game={game} active={active && index === i} nearby={nearby} muted={muted} onProgress={onProgress} />
+              <TrailerVideo ref={trailer} game={game} active={active && index === i} nearby={nearby} muted={muted} onProgress={onProgress} />
             ) : nearby && Math.abs(i - index) <= 1 ? (
               <Screenshot src={it.src} />
             ) : null}

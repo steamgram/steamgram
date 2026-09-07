@@ -37,7 +37,9 @@ export function About({ pool, onClose }: Props) {
             <kbd className="rounded bg-white/10 px-1">S</kbd> previous and next game,{" "}
             <kbd className="rounded bg-white/10 px-1">A</kbd> /{" "}
             <kbd className="rounded bg-white/10 px-1">D</kbd> media,{" "}
-            <kbd className="rounded bg-white/10 px-1">M</kbd> mute
+            <kbd className="rounded bg-white/10 px-1">M</kbd> mute, hold{" "}
+            <kbd className="rounded bg-white/10 px-1">←</kbd> /{" "}
+            <kbd className="rounded bg-white/10 px-1">→</kbd> rewind and fast-forward
           </dd>
           <dt className="font-medium text-zinc-300">Made by</dt>
           <dd>

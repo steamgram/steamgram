@@ -44,7 +44,7 @@ served. Games that were too new to have reviews are retried after two weeks.
 
 ## Keys
 
-`w` / `s` previous and next game · `a` / `d` media · `m` mute · tap the video to pause
+`w` / `s` previous and next game · `a` / `d` media · hold `←` / `→` rewind and fast-forward · `m` mute · tap the video to pause, hold its left or right side to rewind or fast-forward
 
 ## Notes
 

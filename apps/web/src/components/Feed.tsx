@@ -134,8 +134,10 @@ export function Feed() {
   }, [])
 
   // Keyboard, WASD like the logo: W / S move the feed, A / D the media strip, M toggles sound.
+  // Held ← / → rewind and fast-forward the trailer, like a finger held on it.
   // Physical key codes, so the cluster stays in place on non-Latin keyboard layouts.
   useEffect(() => {
+    const isSeekKey = (e: KeyboardEvent) => e.code === 'ArrowLeft' || e.code === 'ArrowRight'
     const onKey = (e: KeyboardEvent) => {
       if (sheet || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement) return
       if (e.code === 'KeyW') scrollTo(Math.max(active - 1, 0))
@@ -143,9 +145,23 @@ export function Feed() {
       else if (e.code === 'KeyA') media.current?.step(-1)
       else if (e.code === 'KeyD') media.current?.step(1)
       else if (e.code === 'KeyM') setMuted((m) => !m)
+      else if (isSeekKey(e)) {
+        e.preventDefault() // the strip would scroll sideways otherwise
+        if (!e.repeat) media.current?.hold(e.code === 'ArrowLeft' ? 'back' : 'forward')
+      }
+    }
+    // Key up, or the window losing focus mid-hold, lets go.
+    const release = (e: Event) => {
+      if (!(e instanceof KeyboardEvent) || isSeekKey(e)) media.current?.release()
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keyup', release)
+    window.addEventListener('blur', release)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', release)
+      window.removeEventListener('blur', release)
+    }
   }, [active, games.length, scrollTo, sheet])
 
   if (isPending) return <Splash text="Warming up the trailer reel…" />
