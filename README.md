@@ -9,6 +9,8 @@ probably never heard of, in the style of TikTok / Instagram Reels.
 > belong to their respective developers and publishers and are loaded directly
 > from Steam's servers.
 
+<img width="1280" height="591" alt="image" src="https://github.com/user-attachments/assets/a84fff6d-bca7-452b-bfc9-1ab36e0111e3" />
+
 ## Stack
 
 - `apps/web` — Vite + React 19 + TypeScript + Tailwind v4, TanStack Query for the
