@@ -9,7 +9,7 @@ probably never heard of, in the style of TikTok / Instagram Reels.
 > belong to their respective developers and publishers and are loaded directly
 > from Steam's servers.
 
-<img width="1280" height="591" alt="image" src="https://github.com/user-attachments/assets/a84fff6d-bca7-452b-bfc9-1ab36e0111e3" />
+<img width="2200" height="1015" alt="Screenshot_20260907_220722_Chrome" src="https://github.com/user-attachments/assets/e14dd9b6-28b2-4f4c-a9c6-9b115661fa90" />
 
 ## Stack
 
