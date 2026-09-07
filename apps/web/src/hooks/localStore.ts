@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
-/** A JSON value in localStorage that React components can subscribe to. */
-export function createLocalStore<T>(key: string, fallback: T) {
+/** A JSON value in localStorage that React components can subscribe to. `migrate` reshapes values saved by older versions. */
+export function createLocalStore<T>(key: string, fallback: T, migrate: (stored: unknown) => T = (v) => v as T) {
   const listeners = new Set<() => void>()
   let cache: T | undefined
 
@@ -9,7 +9,7 @@ export function createLocalStore<T>(key: string, fallback: T) {
     if (cache !== undefined) return cache
     try {
       const raw = localStorage.getItem(key)
-      cache = raw ? (JSON.parse(raw) as T) : fallback
+      cache = raw ? migrate(JSON.parse(raw)) : fallback
     } catch {
       cache = fallback
     }

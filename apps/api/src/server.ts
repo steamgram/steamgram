@@ -19,10 +19,12 @@ app.get('/api/feed', async (c) => {
     .map(Number)
     .filter((n) => Number.isInteger(n) && n > 0)
     .slice(-500)
-  const tags = parseTags(c.req.query('tags'))
+  const tags = parseTags(c.req.query('tags')) // a game needs any of these
+  const without = parseTags(c.req.query('without')) // and none of these; this wins over `tags`
   // The client asks for a page a few cards early, so a short wait here is invisible.
-  const games = await ensureFresh(randomGames(limit, exclude, tags), 2500)
-  return c.json({ games, pool: countGames(), matching: tags.length ? countGames(tags) : null })
+  const games = await ensureFresh(randomGames(limit, exclude, tags, without), 2500)
+  const filtered = tags.length > 0 || without.length > 0
+  return c.json({ games, pool: countGames(), matching: filtered ? countGames(tags, without) : null })
 })
 
 function parseTags(raw: string | undefined): string[] {

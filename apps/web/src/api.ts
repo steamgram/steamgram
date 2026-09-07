@@ -1,9 +1,10 @@
-import type { FeedPage, Game, TagCount } from './types'
+import type { FeedPage, Game, TagCount, TagFilter } from './types'
 
-export async function fetchFeed(exclude: number[], tags: string[] = [], limit = 8): Promise<FeedPage> {
+export async function fetchFeed(exclude: number[], filter: TagFilter, limit = 8): Promise<FeedPage> {
   const params = new URLSearchParams({ limit: String(limit) })
   if (exclude.length) params.set('exclude', exclude.slice(-400).join(','))
-  if (tags.length) params.set('tags', tags.join(','))
+  if (filter.include.length) params.set('tags', filter.include.join(','))
+  if (filter.exclude.length) params.set('without', filter.exclude.join(','))
   const res = await fetch(`/api/feed?${params}`)
   if (!res.ok) throw new Error(`feed ${res.status}`)
   return res.json()

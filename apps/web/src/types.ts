@@ -26,6 +26,8 @@ export type Game = {
 
 export type FeedPage = { games: Game[]; pool: number; matching: number | null }
 export type TagCount = { tag: string; n: number }
+/** Feed filter: a game needs any of `include` and none of `exclude`. */
+export type TagFilter = { include: string[]; exclude: string[] }
 
 /** A game with a trailer shows it as the first slide of its media strip. */
 export const hasTrailer = (game: Game) => Boolean(game.trailer_mp4 || game.trailer_hls)

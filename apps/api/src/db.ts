@@ -180,17 +180,17 @@ export function getVisited(appid: number): { status: VisitStatus; visited_at: nu
   return getVisitedStmt.get(appid) as { status: VisitStatus; visited_at: number } | undefined
 }
 
-/** SQL fragment + params matching games that carry at least one of `tags`. */
-function tagClause(tags: string[]): { sql: string; params: string[] } {
-  if (tags.length === 0) return { sql: '', params: [] }
-  return {
-    sql: ` AND EXISTS (SELECT 1 FROM json_each(games.tags) WHERE value IN (${tags.map(() => '?').join(',')}))`,
-    params: tags,
-  }
+/** SQL fragment + params matching games that carry at least one of `tags` and none of `without`. */
+function tagClause(tags: string[], without: string[] = []): { sql: string; params: string[] } {
+  const anyOf = (list: string[]) => `SELECT 1 FROM json_each(games.tags) WHERE value IN (${list.map(() => '?').join(',')})`
+  let sql = ''
+  if (tags.length) sql += ` AND EXISTS (${anyOf(tags)})`
+  if (without.length) sql += ` AND NOT EXISTS (${anyOf(without)})`
+  return { sql, params: [...tags, ...without] }
 }
 
-export function countGames(tags: string[] = []): number {
-  const t = tagClause(tags)
+export function countGames(tags: string[] = [], without: string[] = []): number {
+  const t = tagClause(tags, without)
   const r = db.prepare(`SELECT COUNT(*) AS n FROM games WHERE adult IS NOT 1${t.sql}`).get(...t.params) as { n: number }
   return r.n
 }
@@ -218,9 +218,9 @@ export function countUnchecked(): number {
   return (db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NULL').get() as { n: number }).n
 }
 
-export function randomGames(limit: number, exclude: number[], tags: string[] = []): Game[] {
+export function randomGames(limit: number, exclude: number[], tags: string[] = [], without: string[] = []): Game[] {
   const placeholders = exclude.map(() => '?').join(',')
-  const t = tagClause(tags)
+  const t = tagClause(tags, without)
   const where = `WHERE adult IS NOT 1${exclude.length ? ` AND appid NOT IN (${placeholders})` : ''}${t.sql}`
   const rows = db
     .prepare(`SELECT * FROM games ${where} ORDER BY RANDOM() LIMIT ?`)

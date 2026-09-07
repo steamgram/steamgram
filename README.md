@@ -1,6 +1,6 @@
 # SteamGram
 
-Doomscroll Steam. A full-screen vertical feed of trailers for games you have
+[Doomscroll Steam](https://steamgram.app/). A full-screen vertical feed of trailers for games you have
 probably never heard of, in the style of TikTok / Instagram Reels.
 
 > SteamGram is an independent fan project. It is not affiliated with, endorsed

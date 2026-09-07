@@ -28,7 +28,7 @@ export function Sheet({ label, onClose, children }: Props) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`feed safe-bottom relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#111823] p-6 text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
+        className={`feed relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#111823] text-zinc-200 shadow-2xl ring-1 ring-white/10 sm:rounded-3xl ${closing ? 'anim-sheet-out' : 'anim-sheet-in'}`}
       >
         <button
           type="button"
@@ -40,7 +40,8 @@ export function Sheet({ label, onClose, children }: Props) {
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        {children}
+        {/* The padding sits inside the scroller, not on it, so a sticky child can reach the very top. */}
+        <div className="safe-bottom p-6">{children}</div>
       </div>
     </div>
   )

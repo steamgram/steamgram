@@ -10,7 +10,7 @@ import { About } from './About'
 import { SavedSheet } from './SavedSheet'
 import { FilterSheet } from './FilterSheet'
 import { useSaved } from '../hooks/useSaved'
-import { useTagFilter } from '../hooks/useTagFilter'
+import { describeFilter, useTagFilter } from '../hooks/useTagFilter'
 
 export function Feed() {
   // A shared link (?game=APPID) opens the feed on that game.
@@ -19,18 +19,19 @@ export function Feed() {
     return Number.isInteger(id) && id > 0 ? id : null
   })
 
-  const { tags, toggle: toggleTag, clear: clearTags } = useTagFilter()
+  const { filter, toggle: toggleTag, clear: clearTags } = useTagFilter()
+  const chosen = filter.include.length + filter.exclude.length
   const { saved, toggle: toggleSave, remove: removeSaved, isSaved } = useSaved()
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending, error } = useInfiniteQuery({
-    queryKey: ['feed', linkedAppid, tags],
+    queryKey: ['feed', linkedAppid, filter],
     initialPageParam: [] as number[],
     queryFn: async ({ pageParam }) => {
       if (pageParam.length === 0 && linkedAppid) {
-        const [linked, page] = await Promise.all([fetchGame(linkedAppid), fetchFeed([linkedAppid], tags)])
+        const [linked, page] = await Promise.all([fetchGame(linkedAppid), fetchFeed([linkedAppid], filter)])
         return linked ? { ...page, games: [linked, ...page.games] } : page
       }
-      return fetchFeed(pageParam, tags)
+      return fetchFeed(pageParam, filter)
     },
     getNextPageParam: (last, pages) => (last.games.length < 8 ? undefined : pages.flatMap((p) => p.games.map((g) => g.appid))),
     staleTime: Infinity,
@@ -94,7 +95,7 @@ export function Feed() {
   useEffect(() => {
     setActive(0)
     containerRef.current?.scrollTo({ top: 0 })
-  }, [tags])
+  }, [filter])
 
   // Track which card is on screen.
   useEffect(() => {
@@ -175,8 +176,8 @@ export function Feed() {
           <div className="flex items-center gap-1.5">
             <HeaderButton
               label="Filter by tags"
-              active={tags.length > 0}
-              badge={tags.length || undefined}
+              active={chosen > 0}
+              badge={chosen || undefined}
               onClick={() => {
                 track('open_filter')
                 setSheet('filter')
@@ -233,9 +234,9 @@ export function Feed() {
           <div className="flex h-dvh snap-start flex-col items-center justify-center gap-4 bg-[#0b0f17] p-8 text-center text-zinc-300">
             <Logo className="h-16 w-auto" />
             <p className="max-w-xs text-sm">
-              {tags.length ? `That is every game tagged ${tags.join(', ')}. Loosen the filter for more.` : 'You reached the end of the reel. Come back later, the crawler never sleeps.'}
+              {chosen ? `That is every game ${describeFilter(filter)}. Loosen the filter for more.` : 'You reached the end of the reel. Come back later, the crawler never sleeps.'}
             </p>
-            {tags.length > 0 && (
+            {chosen > 0 && (
               <button type="button" onClick={clearTags} className="rounded-full bg-steam px-4 py-2 text-sm font-semibold text-black">
                 Clear filter
               </button>
@@ -247,7 +248,7 @@ export function Feed() {
       {sheet === 'about' && <About pool={pool} onClose={() => setSheet(null)} />}
       {sheet === 'saved' && <SavedSheet saved={saved} onRemove={removeSaved} onClose={() => setSheet(null)} />}
       {sheet === 'filter' && (
-        <FilterSheet selected={tags} matching={matching} onToggle={toggleTag} onClear={clearTags} onClose={() => setSheet(null)} />
+        <FilterSheet filter={filter} matching={matching} onToggle={toggleTag} onClear={clearTags} onClose={() => setSheet(null)} />
       )}
 
       {toast && (
