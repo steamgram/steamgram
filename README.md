@@ -58,7 +58,8 @@ served. Games that were too new to have reviews are retried after two weeks.
 - Share uses the native share sheet where available and copies a `?game=APPID`
   link otherwise; that link opens the feed on that game.
 - The web app is an installable PWA with an app-shell service worker; the API
-  and Steam media are never cached. Google Analytics loads only in production
+  and Steam media are never cached. Installed on Android it runs fullscreen,
+  with the system bars hidden. Google Analytics loads only in production
   builds, from `VITE_GA_ID` in `apps/web/.env.production`.
 
 ## Deploy
