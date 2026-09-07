@@ -1,10 +1,13 @@
 type Props = { className?: string; pulse?: boolean }
 
-/** The WASD mark from the app icon, transparent background, for in-app use. */
+/**
+ * The WASD mark from the app icon, transparent background, for in-app use.
+ * Overflow stays visible so the pulsing key can dip below the box instead of being cut off.
+ */
 export function Logo({ className = 'h-24', pulse = false }: Props) {
   const font = { fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontWeight: 700 } as const
   return (
-    <svg viewBox="80 120 352 258" className={className} aria-label="SteamGram" role="img">
+    <svg viewBox="80 120 352 258" className={`overflow-visible ${className}`} aria-label="SteamGram" role="img">
       <defs>
         <linearGradient id="logo-key" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#8fd4ff" />

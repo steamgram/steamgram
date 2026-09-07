@@ -33,13 +33,11 @@ export function About({ pool, onClose }: Props) {
         <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs text-zinc-400">
           <dt className="font-medium text-zinc-300">Keys</dt>
           <dd>
-            <kbd className="rounded bg-white/10 px-1">J</kbd> /{" "}
-            <kbd className="rounded bg-white/10 px-1">K</kbd> next and previous,{" "}
-            <kbd className="rounded bg-white/10 px-1">←</kbd>{" "}
-            <kbd className="rounded bg-white/10 px-1">→</kbd> media,{" "}
-            <kbd className="rounded bg-white/10 px-1">M</kbd> mute, <kbd className="rounded bg-white/10 px-1">I</kbd> info,{" "}
-            {" "}
-            <kbd className="rounded bg-white/10 px-1">S</kbd> share, <kbd className="rounded bg-white/10 px-1">B</kbd> save
+            <kbd className="rounded bg-white/10 px-1">W</kbd> /{" "}
+            <kbd className="rounded bg-white/10 px-1">S</kbd> previous and next game,{" "}
+            <kbd className="rounded bg-white/10 px-1">A</kbd> /{" "}
+            <kbd className="rounded bg-white/10 px-1">D</kbd> media,{" "}
+            <kbd className="rounded bg-white/10 px-1">M</kbd> mute
           </dd>
           <dt className="font-medium text-zinc-300">Made by</dt>
           <dd>

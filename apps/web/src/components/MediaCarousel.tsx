@@ -1,25 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { track } from '../analytics'
-import type { Game } from '../types'
+import { hasTrailer, type Game } from '../types'
 import { TrailerVideo } from './TrailerVideo'
 
 type Item = { kind: 'video' } | { kind: 'image'; src: string }
+
+/** What the feed gets through `ref`: move the strip by a number of slides. */
+export type MediaHandle = { step: (delta: number) => void }
 
 type Props = {
   game: Game
   active: boolean // card is the one on screen
   nearby: boolean // card is within one of the active card
   muted: boolean
+  onSlideChange?: (index: number) => void // 0 is the trailer when the game has one
+  ref?: Ref<MediaHandle>
 }
 
 /**
  * Horizontal, snap-scrolling media strip inside a card: trailer first, then
- * screenshots. Swipe / trackpad / ← → keys / edge arrows all move it.
+ * screenshots. Swipe / trackpad move it; the feed steps it from the keyboard
+ * (A / D) through `ref`.
  */
-export function MediaCarousel({ game, active, nearby, muted }: Props) {
+export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref: handle }: Props) {
   const items = useMemo<Item[]>(() => {
     const list: Item[] = []
-    if (game.trailer_mp4 || game.trailer_hls) list.push({ kind: 'video' })
+    if (hasTrailer(game)) list.push({ kind: 'video' })
     for (const src of game.screenshots) list.push({ kind: 'image', src })
     if (list.length === 0) list.push({ kind: 'image', src: game.header_image })
     return list
@@ -36,7 +42,8 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
       if (next !== prev && next > 0) track('media_swipe', { appid: game.appid, slide: next })
       return next
     })
-  }, [game.appid])
+    onSlideChange?.(next)
+  }, [game.appid, onSlideChange])
 
   const go = useCallback(
     (i: number) => {
@@ -53,18 +60,11 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
     if (!active && ref.current && index !== 0) {
       ref.current.scrollTo({ left: 0 })
       setIndex(0)
+      onSlideChange?.(0)
     }
-  }, [active, index])
+  }, [active, index, onSlideChange])
 
-  useEffect(() => {
-    if (!active || items.length < 2) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1) }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [active, index, items.length, go])
+  useImperativeHandle(handle, () => ({ step: (delta) => go(index + delta) }), [go, index])
 
   return (
     <>
@@ -85,26 +85,16 @@ export function MediaCarousel({ game, active, nearby, muted }: Props) {
         ))}
       </div>
 
+      {/* story-style progress segments */}
       {items.length > 1 && (
-        <>
-          {/* story-style progress segments */}
-          <div className="safe-seg pointer-events-none absolute inset-x-3 z-10 flex gap-1">
-            {items.map((_, i) => (
-              <span
-                key={i}
-                className={`h-0.5 flex-1 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/30'}`}
-              />
-            ))}
-          </div>
-
-          {/* edge arrows for mouse users */}
-          {active && index > 0 && (
-            <EdgeArrow side="left" onClick={() => go(index - 1)} />
-          )}
-          {active && index < items.length - 1 && (
-            <EdgeArrow side="right" onClick={() => go(index + 1)} />
-          )}
-        </>
+        <div className="safe-seg pointer-events-none absolute inset-x-3 z-10 flex gap-1">
+          {items.map((_, i) => (
+            <span
+              key={i}
+              className={`h-0.5 flex-1 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/30'}`}
+            />
+          ))}
+        </div>
       )}
     </>
   )
@@ -117,22 +107,5 @@ function Screenshot({ src }: { src: string }) {
       <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-50" />
       <img src={src} alt="" className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
     </>
-  )
-}
-
-function EdgeArrow({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={side === 'left' ? 'Previous media' : 'Next media'}
-      onClick={onClick}
-      className={`absolute top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white/80 backdrop-blur transition hover:bg-black/60 hover:text-white sm:flex ${
-        side === 'left' ? 'left-3' : 'right-3'
-      }`}
-    >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5">
-        {side === 'left' ? <path d="m15 5-7 7 7 7" /> : <path d="m9 5 7 7-7 7" />}
-      </svg>
-    </button>
   )
 }

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
 import { track } from '../analytics'
-import type { Game } from '../types'
+import { hasTrailer, type Game } from '../types'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { ExpandableText } from './ExpandableText'
-import { MediaCarousel } from './MediaCarousel'
+import { MediaCarousel, type MediaHandle } from './MediaCarousel'
 
 type Props = {
   game: Game
@@ -15,6 +16,7 @@ type Props = {
   onToggleInfo: () => void
   saved: boolean
   onToggleSave: () => void
+  mediaRef?: Ref<MediaHandle> // set on the active card so the feed can step its media from the keyboard
 }
 
 function reviewColor(pct: number | null) {
@@ -29,7 +31,7 @@ function year(date: string | null) {
   return m ? m[0] : null
 }
 
-export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo, saved, onToggleSave }: Props) {
+export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, showInfo, onToggleInfo, saved, onToggleSave, mediaRef }: Props) {
   const storeUrl = `https://store.steampowered.com/app/${game.appid}/`
 
   // In portrait "browse mode" the media box ends just above the text, so the
@@ -51,13 +53,19 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
     return () => ro.disconnect()
   }, [nearby])
 
+  // Hidden info gives the trailer the whole screen. Upright there is room under
+  // a screenshot, so the info comes back while the strip sits on one.
+  const portrait = useMediaQuery('(orientation: portrait)')
+  const [slide, setSlide] = useState(0)
+  const panelOpen = showInfo || (portrait && !(slide === 0 && hasTrailer(game)))
+
   return (
     <section
       className={`card relative h-dvh w-full snap-start snap-always overflow-hidden bg-[#0b0f17] ${showInfo ? 'browse' : ''}`}
       style={{ '--text-h': showInfo ? `${textH}px` : '0px' } as CSSProperties}
     >
       <div className="media-box absolute inset-0 overflow-hidden transition-[bottom] duration-300 ease-out">
-        <MediaCarousel game={game} active={active} nearby={nearby} muted={muted} />
+        <MediaCarousel ref={mediaRef} game={game} active={active} nearby={nearby} muted={muted} onSlideChange={setSlide} />
       </div>
 
       {/* thin strip so the header never sits on pure white */}
@@ -115,9 +123,9 @@ export function GameCard({ game, active, nearby, muted, onToggleMute, onShare, s
       {/* bottom info */}
       <div
         ref={panelRef}
-        aria-hidden={!showInfo}
+        aria-hidden={!panelOpen}
         className={`info-panel safe-bottom pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pt-20 transition-all duration-300 ease-out sm:px-8 sm:pt-24 ${
-          showInfo ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 [&_*]:pointer-events-none'
+          panelOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 [&_*]:pointer-events-none'
         }`}
       >
         <div className="info-content max-w-2xl">

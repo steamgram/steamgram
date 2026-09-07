@@ -4,6 +4,7 @@ import { fetchFeed, fetchGame } from '../api'
 import { track } from '../analytics'
 import type { Game } from '../types'
 import { GameCard } from './GameCard'
+import type { MediaHandle } from './MediaCarousel'
 import { Logo } from './Logo'
 import { About } from './About'
 import { SavedSheet } from './SavedSheet'
@@ -66,6 +67,7 @@ export function Feed() {
     })
   }, [])
   const containerRef = useRef<HTMLDivElement>(null)
+  const media = useRef<MediaHandle>(null) // media strip of the card on screen
 
   const share = useCallback(async (g: Game) => {
     const url = `${window.location.origin}/?game=${g.appid}`
@@ -130,27 +132,28 @@ export function Feed() {
     target?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Keyboard: j/k, arrows, space; m to mute; s to share.
+  // Keyboard, WASD like the logo: W / S move the feed, A / D the media strip, M toggles sound.
+  // Physical key codes, so the cluster stays in place on non-Latin keyboard layouts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || sheet) return
-      if (['ArrowDown', 'j', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); scrollTo(Math.min(active + 1, games.length - 1)) }
-      else if (['ArrowUp', 'k', 'PageUp'].includes(e.key)) { e.preventDefault(); scrollTo(Math.max(active - 1, 0)) }
-      else if (e.key === 'm') setMuted((m) => !m)
-      else if (e.key === 'i') toggleInfo()
-      else if (e.key === 'b' && games[active]) toggleSave(games[active])
-      else if (e.key === 's' && games[active]) share(games[active])
+      if (sheet || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement) return
+      if (e.code === 'KeyW') scrollTo(Math.max(active - 1, 0))
+      else if (e.code === 'KeyS') scrollTo(Math.min(active + 1, games.length - 1))
+      else if (e.code === 'KeyA') media.current?.step(-1)
+      else if (e.code === 'KeyD') media.current?.step(1)
+      else if (e.code === 'KeyM') setMuted((m) => !m)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, games, scrollTo, share, sheet, toggleInfo, toggleSave])
+  }, [active, games.length, scrollTo, sheet])
 
   if (isPending) return <Splash text="Warming up the trailer reel…" />
-  if (error) return <Splash text={`Could not reach the API: ${(error as Error).message}. Is \`pnpm dev:api\` running?`} />
+  if (error) return <Splash text={`Could not reach the server :(.`} />
   if (games.length === 0) return <Splash text="The pool is empty. Let the crawler run for a minute and refresh." />
 
   return (
     <div className="relative h-dvh bg-black">
+      {/* With the info hidden the header folds down to the mark and the two actions: less noise over the trailer. */}
       <header className="safe-top pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pb-3 text-white sm:px-6">
         <button
           type="button"
@@ -159,40 +162,48 @@ export function Feed() {
             track('open_about')
             setSheet('about')
           }}
-          className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/45 py-1 pl-2 pr-3 ring-1 ring-white/15 backdrop-blur-sm transition hover:bg-black/60"
+          className="pointer-events-auto flex items-center rounded-full bg-black/45 px-2 py-1 ring-1 ring-white/15 backdrop-blur-sm transition hover:bg-black/60"
         >
           <Logo className="h-6 w-auto" />
-          <span className="text-lg font-black tracking-tight">Steam<span className="text-steam">Gram</span></span>
+          <Collapse open={showInfo} side="left">
+            <span className="pl-2 pr-1 text-lg font-black tracking-tight">
+              Steam<span className="text-steam">Gram</span>
+            </span>
+          </Collapse>
         </button>
-        <div className="pointer-events-auto flex items-center gap-1.5">
-          <HeaderButton
-            label="Filter by tags"
-            active={tags.length > 0}
-            badge={tags.length || undefined}
-            onClick={() => {
-              track('open_filter')
-              setSheet('filter')
-            }}
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 5h18l-7 8v5l-4 2v-7z" />
-            </svg>
-          </HeaderButton>
-          <HeaderButton
-            label="Saved games"
-            badge={saved.length || undefined}
-            onClick={() => {
-              track('open_saved', { count: saved.length })
-              setSheet('saved')
-            }}
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
-            </svg>
-          </HeaderButton>
-          <span className="rounded-full bg-black/45 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/15 backdrop-blur-sm">
-            {(matching ?? pool).toLocaleString()} games
-          </span>
+        <div className="pointer-events-auto flex items-center">
+          <div className="flex items-center gap-1.5">
+            <HeaderButton
+              label="Filter by tags"
+              active={tags.length > 0}
+              badge={tags.length || undefined}
+              onClick={() => {
+                track('open_filter')
+                setSheet('filter')
+              }}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 5h18l-7 8v5l-4 2v-7z" />
+              </svg>
+            </HeaderButton>
+            <HeaderButton
+              label="Saved games"
+              badge={saved.length || undefined}
+              onClick={() => {
+                track('open_saved', { count: saved.length })
+                setSheet('saved')
+              }}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+              </svg>
+            </HeaderButton>
+          </div>
+          <Collapse open={showInfo} side="right">
+            <span className="ml-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/15 backdrop-blur-sm">
+              {(matching ?? pool).toLocaleString()} games
+            </span>
+          </Collapse>
         </div>
       </header>
 
@@ -213,6 +224,7 @@ export function Feed() {
               onToggleInfo={toggleInfo}
               saved={isSaved(g.appid)}
               onToggleSave={() => toggleSave(g)}
+              mediaRef={i === active ? media : undefined}
             />
           </div>
         ))}
@@ -276,6 +288,27 @@ function HeaderButton({
         </span>
       ) : null}
     </button>
+  )
+}
+
+/**
+ * Header chrome that folds away sideways: its grid column closes to nothing while
+ * the content slides under its neighbour and fades, so nothing pops in or out.
+ */
+function Collapse({ open, side, children }: { open: boolean; side: 'left' | 'right'; children: React.ReactNode }) {
+  return (
+    <span className={`grid transition-[grid-template-columns] duration-300 ease-out ${open ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'}`}>
+      {/* a pixel of padding, taken back by the margin, keeps rings out of the clip */}
+      <span className="-m-px min-w-0 overflow-hidden p-px">
+        <span
+          className={`flex w-max items-center whitespace-nowrap transition-[opacity,transform] duration-300 ease-out ${
+            open ? 'translate-x-0 opacity-100' : `opacity-0 ${side === 'left' ? '-translate-x-2' : 'translate-x-2'}`
+          }`}
+        >
+          {children}
+        </span>
+      </span>
+    </span>
   )
 }
 

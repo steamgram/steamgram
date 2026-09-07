@@ -26,3 +26,6 @@ export type Game = {
 
 export type FeedPage = { games: Game[]; pool: number; matching: number | null }
 export type TagCount = { tag: string; n: number }
+
+/** A game with a trailer shows it as the first slide of its media strip. */
+export const hasTrailer = (game: Game) => Boolean(game.trailer_mp4 || game.trailer_hls)
