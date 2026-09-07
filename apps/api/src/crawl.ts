@@ -160,14 +160,16 @@ export async function crawlForever(opts: { target?: number } = {}) {
         kvSet('last_new_release_sweep', String(Date.now()))
       }
 
-      if (countGames() < target) {
+      // countGames() scans the whole table (~50 ms on the server, on the shared event
+      // loop), so only count when there is a target to compare against or new rows to report.
+      if (target === Infinity || countGames() < target) {
         const added = await crawlOnce()
         if (added === 0) {
           idle = Math.min(idle ? idle * 2 : 30_000, 30 * 60_000)
-          log(`nothing new on that page; next discovery in ${Math.round(idle / 1000)}s (pool ${countGames()})`)
+          log(`nothing new on that page; next discovery in ${Math.round(idle / 1000)}s`)
         } else {
           idle = 0
-          log(`pool size: ${countGames()}`)
+          log(`+${added}, pool size: ${countGames()}`)
         }
       } else {
         idle = 60_000

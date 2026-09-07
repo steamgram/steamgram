@@ -1,6 +1,6 @@
 #!/bin/bash
 # Snapshot the game pool out of the running container and keep the last few copies.
-# Run on the Pi; cron-friendly. The database is in WAL mode, so rather than copying
+# Run on the server; cron-friendly. The database is in WAL mode, so rather than copying
 # files it asks SQLite for a consistent copy (VACUUM INTO), checks that copy, and
 # pulls the single resulting file out of the volume. The app keeps running.
 #
@@ -10,7 +10,7 @@
 # Nightly at 03:00, keeping two weeks (crontab -e):
 #   0 3 * * * /var/www/steamgram.app/deploy/backup.sh >> /var/log/steamgram-backup.log 2>&1
 #
-# Copy the snapshots off the Pi now and then; a backup on the same SD card is not one.
+# Copy the snapshots off the server now and then; a backup on the same disk is not one.
 #
 # Restore: stop the container; in the volume delete steamgram.sqlite-wal and
 # steamgram.sqlite-shm, copy a snapshot in as steamgram.sqlite owned by uid 1000

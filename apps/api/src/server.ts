@@ -3,14 +3,15 @@ import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { existsSync } from 'node:fs'
-import { countGames, getGame, getGames, randomGames, tagCounts } from './db.js'
+import { countMatchingCached, getGame, getGames, poolSize, randomGames, startPoolRefresh, tagCounts } from './db.js'
 import { crawlForever } from './crawl.js'
 import { ensureFresh } from './refresh.js'
 
 const app = new Hono()
+const FRESH_WAIT_MS = Number(process.env.FRESH_WAIT_MS) || 800
 app.use('/api/*', cors())
 
-app.get('/api/health', (c) => c.json({ ok: true, games: countGames() }))
+app.get('/api/health', (c) => c.json({ ok: true, games: poolSize() }))
 
 app.get('/api/feed', async (c) => {
   const limit = Math.min(Number(c.req.query('limit')) || 8, 30)
@@ -22,9 +23,10 @@ app.get('/api/feed', async (c) => {
   const tags = parseTags(c.req.query('tags')) // a game needs any of these
   const without = parseTags(c.req.query('without')) // and none of these; this wins over `tags`
   // The client asks for a page a few cards early, so a short wait here is invisible.
-  const games = await ensureFresh(randomGames(limit, exclude, tags, without), 2500)
+  // Kept short: under load every request would otherwise sit out the full timeout.
+  const games = await ensureFresh(randomGames(limit, exclude, tags, without), FRESH_WAIT_MS)
   const filtered = tags.length > 0 || without.length > 0
-  return c.json({ games, pool: countGames(), matching: filtered ? countGames(tags, without) : null })
+  return c.json({ games, pool: poolSize(), matching: filtered ? countMatchingCached(tags, without) : null })
 })
 
 function parseTags(raw: string | undefined): string[] {
@@ -64,9 +66,12 @@ if (existsSync(webDir)) {
   console.log(`serving web app from ${webDir}`)
 }
 
+// The feed serves from an in-memory id pool; build it before the first request.
+startPoolRefresh()
+
 const port = Number(process.env.PORT) || 3001
 serve({ fetch: app.fetch, port }, () => {
-  console.log(`api listening on http://localhost:${port} (pool: ${countGames()} games)`)
+  console.log(`api listening on http://localhost:${port} (pool: ${poolSize()} games)`)
 })
 
 // Keep the pool growing in the background unless disabled.

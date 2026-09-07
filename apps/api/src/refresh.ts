@@ -3,7 +3,7 @@ import { fetchPrices, fetchReviewSummary, pendingRequests } from './steam.js'
 
 const PRICE_TTL = 6 * 60 * 60 * 1000 // Steam sales flip at fixed times; 6h keeps prices honest
 const REVIEWS_TTL = 7 * 24 * 60 * 60 * 1000 // scores drift slowly
-const MAX_QUEUE = 40 // beyond this many waiting Steam requests, skip optional review refreshes
+const MAX_QUEUE = 40 // beyond this many waiting Steam requests, skip optional refreshes entirely
 
 // Dedupe concurrent refreshes of the same app across requests.
 const inFlight = new Map<string, Promise<void>>()
@@ -24,10 +24,13 @@ function log(msg: string) {
 /** Kick off refreshes for whatever is stale in `games`. Resolves when all of them are done. */
 export function refreshStale(games: Game[]): Promise<void> {
   const now = Date.now()
+  // The Steam limiter allows one request per 1.5 s. Under a traffic spike nearly every feed
+  // page would queue a refresh, the queue would grow without bound, and every viewer would
+  // wait the full timeout for data the feed serves fine stale. So shed everything once the
+  // queue is deep; the next quiet moment catches up.
+  if (pendingRequests() > MAX_QUEUE) return Promise.resolve()
   const stalePrices = games.filter((g) => (g.price_refreshed_at ?? 0) < now - PRICE_TTL).map((g) => g.appid)
-  // Prices are one batched request; reviews cost one request each, so shed them when Steam is backed up.
-  const staleReviews =
-    pendingRequests() > MAX_QUEUE ? [] : games.filter((g) => (g.reviews_refreshed_at ?? 0) < now - REVIEWS_TTL).map((g) => g.appid)
+  const staleReviews = games.filter((g) => (g.reviews_refreshed_at ?? 0) < now - REVIEWS_TTL).map((g) => g.appid)
   const jobs: Promise<void>[] = []
 
   if (stalePrices.length) {

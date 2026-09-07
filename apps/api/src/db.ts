@@ -195,6 +195,21 @@ export function countGames(tags: string[] = [], without: string[] = []): number 
   return r.n
 }
 
+// Tag-filtered counts are a full scan with json_each per row and only feed a label in
+// the filter sheet, so they are cached per filter combination for a few minutes.
+const MATCHING_TTL = 5 * 60_000
+const MATCHING_MAX = 500 // tags are user input, so bound the key space
+const matchingCache = new Map<string, { at: number; n: number }>()
+export function countMatchingCached(tags: string[], without: string[]): number {
+  const key = `${tags.join(',')}|${without.join(',')}`
+  const hit = matchingCache.get(key)
+  if (hit && Date.now() - hit.at < MATCHING_TTL) return hit.n
+  const n = countGames(tags, without)
+  if (matchingCache.size >= MATCHING_MAX) matchingCache.delete(matchingCache.keys().next().value!)
+  matchingCache.set(key, { at: Date.now(), n })
+  return n
+}
+
 /** Most common tags across the served pool, for the filter UI. */
 export function tagCounts(limit = 80): { tag: string; n: number }[] {
   return db
@@ -218,7 +233,46 @@ export function countUnchecked(): number {
   return (db.prepare('SELECT COUNT(*) AS n FROM games WHERE adult IS NULL').get() as { n: number }).n
 }
 
+// The servable pool: every appid the feed may serve, kept in memory and rebuilt on a
+// timer, never on the request path. It exists because `ORDER BY RANDOM()` scans and
+// sorts the whole table (40k rows, ~50 ms on the server) and node:sqlite blocks the
+// event loop while it does. With the list in memory an unfiltered page is a handful
+// of primary-key lookups, and its length is the "N games" count the UI shows, so the
+// feed never counts the table either. New games show up on the next refresh.
+export const POOL_REFRESH_MS = 5 * 60_000
+let idPool: number[] = []
+
+export function refreshPool(): number {
+  idPool = (db.prepare('SELECT appid FROM games WHERE adult IS NOT 1').all() as { appid: number }[]).map((r) => r.appid)
+  return idPool.length
+}
+
+/** Number of games the feed can serve, from the last pool refresh. */
+export function poolSize(): number {
+  return idPool.length
+}
+
+/** Build the pool now and keep it fresh in the background. Call once at server start. */
+export function startPoolRefresh(intervalMs = POOL_REFRESH_MS): void {
+  refreshPool()
+  setInterval(refreshPool, intervalMs).unref()
+}
+
 export function randomGames(limit: number, exclude: number[], tags: string[] = [], without: string[] = []): Game[] {
+  if (tags.length === 0 && without.length === 0) {
+    const pool = idPool
+    if (pool.length === 0) return []
+    const skip = new Set(exclude)
+    const picked: number[] = []
+    for (let i = 0; picked.length < limit && i < limit * 20; i++) {
+      const id = pool[(Math.random() * pool.length) | 0]
+      if (skip.has(id)) continue
+      skip.add(id)
+      picked.push(id)
+    }
+    // A game can be flagged adult after the id cache was built; never serve it.
+    return getGames(picked).filter((g) => g.adult !== 1)
+  }
   const placeholders = exclude.map(() => '?').join(',')
   const t = tagClause(tags, without)
   const where = `WHERE adult IS NOT 1${exclude.length ? ` AND appid NOT IN (${placeholders})` : ''}${t.sql}`
