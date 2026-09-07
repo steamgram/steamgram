@@ -3,8 +3,8 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref
 import type { Game } from "../types";
 
 export type SeekDir = "back" | "forward";
-/** What the strip gets through `ref`: the same hold-to-seek a finger does on the video. */
-export type TrailerHandle = { hold: (dir: SeekDir) => void; release: () => void };
+/** What the strip gets through `ref`: a key pressed and released, treated like a finger on the video. */
+export type TrailerHandle = { press: (dir: SeekDir) => void; release: () => void };
 
 type Props = {
   game: Game;
@@ -15,8 +15,11 @@ type Props = {
   ref?: Ref<TrailerHandle>;
 };
 
-const HOLD_MS = 250; // a press shorter than this is a tap (pause); longer is a hold (seek)
+const HOLD_MS = 250; // a press shorter than this is a tap; longer is a hold (seek)
 const SPEED = 3; // forward plays this fast; back scrubs at about the same pace
+const SKIP_S = 10; // seconds per double-tap (and per extra quick tap)
+const DOUBLE_TAP_MS = 300; // a lone tap waits this long for a second one before it pauses
+const SKIP_WINDOW_MS = 600; // further taps within this keep adding to the skip
 
 /**
  * Plays Steam's legacy progressive MP4 when available and falls back to the
@@ -87,20 +90,32 @@ export function TrailerVideo({ game, active, nearby, muted, onProgress, ref: han
     onProgress(Number.isFinite(d) && d > 0 ? el.currentTime / d : 0);
   };
 
-  // Hold to seek: a finger (or arrow key) held on the right plays at SPEED, on
-  // the left scrubs backwards; letting go restores what was there before. The
-  // gesture lives in refs so its timers never re-render the card.
-  const [badge, setBadge] = useState<{ dir: SeekDir; leaving: boolean } | null>(null);
-  const press = useRef(0); // timer running from finger down until it counts as a hold
+  // Seeking by finger or key. A press shorter than HOLD_MS is a tap; longer is a
+  // hold that plays at SPEED (right) or scrubs backwards (left) until let go.
+  // Two quick taps skip SKIP_S seconds towards the tapped side, and each further
+  // quick tap adds another SKIP_S. A lone tap toggles pause once it is clear no
+  // second tap follows. It all lives in refs so timers never re-render the card.
+  const [badge, setBadge] = useState<{ dir: SeekDir; label: string; leaving: boolean } | null>(null);
+  const press = useRef<{ timer: number; onTap: () => void } | null>(null); // down, not yet a hold
   const hold = useRef<{ ticker: number; wasPaused: boolean } | null>(null);
+  const tapTimer = useRef(0); // a lone tap waits for a possible second one before it pauses
+  const skip = useRef<{ dir: SeekDir; total: number; timer: number } | null>(null); // taps still adding up
   const badgeTimer = useRef(0);
+
+  const showBadge = useCallback((dir: SeekDir, label: string) => {
+    window.clearTimeout(badgeTimer.current);
+    setBadge({ dir, label, leaving: false });
+  }, []);
+  const hideBadge = useCallback(() => {
+    setBadge((b) => (b ? { ...b, leaving: true } : b));
+    badgeTimer.current = window.setTimeout(() => setBadge(null), 220);
+  }, []);
 
   const startHold = useCallback(
     (dir: SeekDir) => {
       const el = ref.current;
       if (!el || hold.current) return;
-      window.clearTimeout(badgeTimer.current);
-      setBadge({ dir, leaving: false });
+      showBadge(dir, `${SPEED}×`);
       if (dir === "forward") {
         el.playbackRate = SPEED;
         el.play().catch(() => {});
@@ -120,7 +135,7 @@ export function TrailerVideo({ game, active, nearby, muted, onProgress, ref: han
       }, 100);
       hold.current = { ticker, wasPaused: userPaused };
     },
-    [userPaused],
+    [userPaused, showBadge],
   );
 
   const endHold = useCallback(() => {
@@ -134,47 +149,115 @@ export function TrailerVideo({ game, active, nearby, muted, onProgress, ref: han
       if (h.wasPaused || !active) el.pause();
       else el.play().catch(() => {});
     }
-    setBadge((b) => (b ? { ...b, leaving: true } : b));
-    badgeTimer.current = window.setTimeout(() => setBadge(null), 220);
-  }, [active]);
+    hideBadge();
+  }, [active, hideBadge]);
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || !e.isPrimary || press.current || hold.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const dir: SeekDir = e.clientX - rect.left < rect.width / 2 ? "back" : "forward";
-    press.current = window.setTimeout(() => {
-      press.current = 0;
-      startHold(dir);
-    }, HOLD_MS);
-  };
-  // Up before the threshold is a tap: toggle pause. Anything later ends the hold.
-  const onPointerUp = () => {
-    if (press.current) {
-      window.clearTimeout(press.current);
-      press.current = 0;
-      setUserPaused((p) => !p);
+  // Jump SKIP_S towards `dir`; quick repeats add up on the badge ("+20s", "+30s").
+  const doSkip = useCallback(
+    (dir: SeekDir) => {
+      const el = ref.current;
+      if (!el) return;
+      const prev = skip.current;
+      if (prev) window.clearTimeout(prev.timer);
+      const run = prev && prev.dir === dir ? prev : { dir, total: 0, timer: 0 };
+      run.total += SKIP_S;
+      const end = Number.isFinite(el.duration) ? el.duration - 0.4 : Infinity;
+      el.currentTime = dir === "forward" ? Math.min(end, el.currentTime + SKIP_S) : Math.max(0, el.currentTime - SKIP_S);
+      showBadge(dir, `${dir === "forward" ? "+" : "−"}${run.total}s`);
+      run.timer = window.setTimeout(() => {
+        skip.current = null;
+        hideBadge();
+      }, SKIP_WINDOW_MS);
+      skip.current = run;
+    },
+    [showBadge, hideBadge],
+  );
+
+  // A finger tap: the second of two quick taps skips, as does any tap while a skip
+  // is still adding up; a lone tap pauses once the window for a second one passes.
+  const onTap = useCallback(
+    (dir: SeekDir, second: boolean) => {
+      if (second || skip.current) {
+        doSkip(dir);
+      } else {
+        tapTimer.current = window.setTimeout(() => {
+          tapTimer.current = 0;
+          setUserPaused((p) => !p);
+        }, DOUBLE_TAP_MS);
+      }
+    },
+    [doSkip],
+  );
+
+  // Finger or key down: after HOLD_MS it is a hold; let go earlier, it is a tap.
+  // A press that starts while a tap is still waiting takes that tap's pause away:
+  // it is either the second tap of a double-tap or a hold, and neither pauses.
+  const beginPress = useCallback(
+    (dir: SeekDir, tap: (second: boolean) => void) => {
+      if (press.current || hold.current) return;
+      const second = tapTimer.current !== 0;
+      window.clearTimeout(tapTimer.current);
+      tapTimer.current = 0;
+      const timer = window.setTimeout(() => {
+        press.current = null;
+        startHold(dir);
+      }, HOLD_MS);
+      press.current = { timer, onTap: () => tap(second) };
+    },
+    [startHold],
+  );
+  const endPress = useCallback(() => {
+    const p = press.current;
+    if (p) {
+      press.current = null;
+      window.clearTimeout(p.timer);
+      p.onTap();
       return;
     }
     endHold();
-  };
-  // The browser took the gesture (a swipe) or the pointer left: never a tap.
-  const onPointerCancel = () => {
-    window.clearTimeout(press.current);
-    press.current = 0;
+  }, [endHold]);
+  // The browser took the gesture (a swipe): never a tap, and a pause still pending
+  // from a tap just before is dropped too, so nothing pauses under the swipe.
+  const cancelPress = useCallback(() => {
+    if (press.current) window.clearTimeout(press.current.timer);
+    press.current = null;
+    window.clearTimeout(tapTimer.current);
+    tapTimer.current = 0;
     endHold();
+  }, [endHold]);
+  // The pointer left mid-press (a mouse dragged out): drop the press but keep a
+  // pending tap, since touch fires pointerleave right after every pointerup.
+  const leavePress = useCallback(() => {
+    if (press.current) window.clearTimeout(press.current.timer);
+    press.current = null;
+    endHold();
+  }, [endHold]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dir: SeekDir = e.clientX - rect.left < rect.width / 2 ? "back" : "forward";
+    beginPress(dir, (second) => onTap(dir, second));
   };
 
-  useImperativeHandle(handle, () => ({ hold: startHold, release: endHold }), [startHold, endHold]);
+  // Keys: a short press skips, a held one is a hold, the same as a finger.
+  useImperativeHandle(
+    handle,
+    () => ({ press: (dir: SeekDir) => beginPress(dir, () => doSkip(dir)), release: endPress }),
+    [beginPress, doSkip, endPress],
+  );
 
-  // Scrolling away ends a hold; unmounting drops its timers.
+  // Scrolling away ends a hold; unmounting drops every timer.
   useEffect(() => {
     if (!active) endHold();
   }, [active, endHold]);
   useEffect(
     () => () => {
-      window.clearTimeout(press.current);
-      window.clearTimeout(badgeTimer.current);
+      if (press.current) window.clearTimeout(press.current.timer);
       if (hold.current) window.clearInterval(hold.current.ticker);
+      if (skip.current) window.clearTimeout(skip.current.timer);
+      window.clearTimeout(tapTimer.current);
+      window.clearTimeout(badgeTimer.current);
     },
     [],
   );
@@ -195,9 +278,9 @@ export function TrailerVideo({ game, active, nearby, muted, onProgress, ref: han
       className="absolute inset-0 select-none"
       style={{ WebkitTouchCallout: "none" }}
       onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onPointerLeave={onPointerCancel}
+      onPointerUp={endPress}
+      onPointerCancel={cancelPress}
+      onPointerLeave={leavePress}
       onContextMenu={(e) => e.preventDefault()}
     >
       {badge && (
@@ -207,7 +290,7 @@ export function TrailerVideo({ game, active, nearby, muted, onProgress, ref: han
           } ${badge.leaving ? "anim-fade-out" : "anim-pop-in"}`}
         >
           {badge.dir === "back" && <DoubleArrow dir="back" />}
-          {SPEED}×
+          {badge.label}
           {badge.dir === "forward" && <DoubleArrow dir="forward" />}
         </div>
       )}

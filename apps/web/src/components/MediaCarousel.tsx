@@ -5,8 +5,8 @@ import { TrailerVideo, type SeekDir, type TrailerHandle } from './TrailerVideo'
 
 type Item = { kind: 'video' } | { kind: 'image'; src: string }
 
-/** What the feed gets through `ref`: move the strip by a number of slides, or hold-seek the trailer. */
-export type MediaHandle = { step: (delta: number) => void; hold: (dir: SeekDir) => void; release: () => void }
+/** What the feed gets through `ref`: move the strip by a number of slides, or press a seek key on the trailer. */
+export type MediaHandle = { step: (delta: number) => void; press: (dir: SeekDir) => void; release: () => void }
 
 type Props = {
   game: Game
@@ -69,8 +69,8 @@ export function MediaCarousel({ game, active, nearby, muted, onSlideChange, ref:
     handle,
     () => ({
       step: (delta) => go(index + delta),
-      hold: (dir) => {
-        if (index === 0) trailer.current?.hold(dir) // a screenshot has nothing to seek
+      press: (dir) => {
+        if (index === 0) trailer.current?.press(dir) // a screenshot has nothing to seek
       },
       release: () => trailer.current?.release(),
     }),

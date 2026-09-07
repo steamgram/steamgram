@@ -134,7 +134,7 @@ export function Feed() {
   }, [])
 
   // Keyboard, WASD like the logo: W / S move the feed, A / D the media strip, M toggles sound.
-  // Held ← / → rewind and fast-forward the trailer, like a finger held on it.
+  // ← / → act on the trailer like a finger: a short press skips 10s, a held one rewinds or fast-forwards.
   // Physical key codes, so the cluster stays in place on non-Latin keyboard layouts.
   useEffect(() => {
     const isSeekKey = (e: KeyboardEvent) => e.code === 'ArrowLeft' || e.code === 'ArrowRight'
@@ -147,7 +147,7 @@ export function Feed() {
       else if (e.code === 'KeyM') setMuted((m) => !m)
       else if (isSeekKey(e)) {
         e.preventDefault() // the strip would scroll sideways otherwise
-        if (!e.repeat) media.current?.hold(e.code === 'ArrowLeft' ? 'back' : 'forward')
+        if (!e.repeat) media.current?.press(e.code === 'ArrowLeft' ? 'back' : 'forward')
       }
     }
     // Key up, or the window losing focus mid-hold, lets go.
